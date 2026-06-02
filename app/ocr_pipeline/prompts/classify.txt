@@ -1,0 +1,16 @@
+Analyze the OCR text and determine the document type. Choose ONE type from this list:
+- cv: Curriculum vitae, resume, job application
+- invoice: Bill, invoice, facture, receipt with items/totals
+- contract: Legal contract, agreement between parties
+- legal: Law document, regulation, decree, legislation, legal text
+- id_card: National ID card, passport, driver license
+- form: Fillable form, application form, questionnaire
+- administrative: Official certificate, birth certificate, diploma, permit
+- signature: Signature-only document, signed authorization
+- unknown: None of the above
+
+Return ONLY a JSON object with this exact structure (no explanation):
+{"document_type": "one_of_the_types_above", "confidence": 0.0_to_1.0, "reason": "brief justification based on text evidence"}
+
+Document text:
+{verified_text}

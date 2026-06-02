@@ -1,0 +1,170 @@
+# ─────────────────────────────────────────────
+#  docker-compose.yml  –  BASE (shared config)
+#  Extended by compose.dev.yml / compose.staging.yml / compose.prod.yml
+# ─────────────────────────────────────────────
+
+x-app-base: &app-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runtime
+  image: vision_ai:${IMAGE_TAG:-latest}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  env_file:
+    - .env.${APP_ENV:-dev}
+  volumes:
+    - uploads:/app/uploads
+    - logs:/app/logs
+  networks:
+    - vision_net
+  restart: unless-stopped
+
+services:
+
+  # ── FastAPI application ──────────────────────
+  api:
+    <<: *app-base
+    container_name: vision_api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Celery worker (AI pipeline tasks) ───────
+  worker:
+    <<: *app-base
+    container_name: vision_worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --loglevel=${CELERY_LOG_LEVEL:-info}
+      --concurrency=${CELERY_CONCURRENCY:-2}
+      --queues=pipeline,default
+    ports: []          # workers don't expose HTTP
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.workers.celery_app", "inspect", "ping"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+
+  # ── Celery Beat scheduler (periodic jobs) ───
+  beat:
+    <<: *app-base
+    container_name: vision_beat
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    ports: []
+    depends_on:
+      - worker
+
+  # ── Flower — Celery monitoring UI ───────────
+  flower:
+    <<: *app-base
+    container_name: vision_flower
+    command: >
+      celery -A app.workers.celery_app flower
+      --port=5555
+      --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-secret}
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+
+  # ── Ollama — local LLM server ────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vision_ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    networks:
+      - vision_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── PostgreSQL ───────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: vision_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vision_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-vision}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - vision_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vision} -d ${POSTGRES_DB:-vision_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vision_redis
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - vision_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO — object storage (S3-compatible) ───
+  minio:
+    image: minio/minio:latest
+    container_name: vision_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    networks:
+      - vision_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ── Volumes ────────────────────────────────────
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ollama_data:
+  uploads:
+  logs:
+
+# ── Networks ───────────────────────────────────
+networks:
+  vision_net:
+    driver: bridge

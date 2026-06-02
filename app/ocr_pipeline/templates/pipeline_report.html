@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Pipeline Report</title>
+<style>
+:root {{ color-scheme: light; --ink:#172033; --muted:#5b667a; --line:#d9e0ea; --bg:#f6f8fb; --ok:#16794c; --warn:#a35b00; --fail:#b42318; --skip:#5f6f89; }}
+* {{ box-sizing: border-box; }}
+body {{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--ink); }}
+main {{ max-width:1120px; margin:0 auto; padding:28px 18px 42px; }}
+header {{ border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:22px; }}
+h1 {{ font-size:28px; margin:0 0 8px; letter-spacing:0; }}
+h2 {{ font-size:17px; margin:26px 0 10px; letter-spacing:0; }}
+p {{ margin:5px 0; color:var(--muted); }}
+table {{ width:100%; border-collapse:collapse; background:white; border:1px solid var(--line); }}
+th, td {{ text-align:left; vertical-align:top; border-bottom:1px solid var(--line); padding:10px 12px; font-size:14px; }}
+th {{ background:#edf1f6; color:#26364d; }}
+ul {{ background:white; border:1px solid var(--line); margin:0; padding:12px 18px 12px 32px; }}
+li {{ margin:6px 0; }}
+a {{ color:#2457a6; }}
+.summary {{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }}
+.metric {{ background:white; border:1px solid var(--line); padding:12px; }}
+.metric strong {{ display:block; font-size:18px; margin-top:4px; }}
+.status {{ display:inline-block; min-width:68px; text-align:center; padding:3px 7px; border-radius:4px; color:white; font-size:12px; font-weight:bold; }}
+.ok {{ background:var(--ok); }}
+.warn, .warning {{ background:var(--warn); }}
+.fail, .failed, .error {{ background:var(--fail); }}
+.skip, .skipped {{ background:var(--skip); }}
+@media (max-width:800px) {{ .summary {{ grid-template-columns:1fr 1fr; }} th, td {{ font-size:13px; }} }}
+@media (max-width:560px) {{ .summary {{ grid-template-columns:1fr; }} main {{ padding:18px 10px 30px; }} }}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Document Pipeline Report</h1>
+    <p>Status: <strong>{status}</strong></p>
+    <p>Input: {source_file}</p>
+    <p>Output folder: {output_dir}</p>
+  </header>
+  <section class="summary" aria-label="Run summary">
+    <div class="metric">Document type<strong>{document_type}</strong></div>
+    <div class="metric">Language<strong>{language}</strong></div>
+    <div class="metric">Confidence<strong>{confidence}</strong></div>
+    <div class="metric">Time<strong>{time}</strong></div>
+  </section>
+  <h2>Steps</h2>
+  <table aria-label="Pipeline steps">
+    <thead><tr><th>Step</th><th>Status</th><th>Detail</th><th>Time</th></tr></thead>
+    <tbody>{step_rows}</tbody>
+  </table>
+  <h2>Tools And Models</h2>
+  <table aria-label="Tool and model status">
+    <thead><tr><th>Tool or Model</th><th>Status</th><th>Detail</th></tr></thead>
+    <tbody>{tool_rows}</tbody>
+  </table>
+  <h2>Outputs</h2>
+  <ul>{output_links}</ul>
+  <h2>Warnings</h2>
+  <ul>{warning_items}</ul>
+</main>
+</body>
+</html>

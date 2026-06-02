@@ -1,0 +1,91 @@
+# ─────────────────────────────────────────────
+#  docker-compose.staging.yml  –  STAGING
+#  Usage: make staging
+#         OR: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+# ─────────────────────────────────────────────
+version: "3.9"
+
+services:
+
+  api:
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 2
+      --log-level info
+      --access-log
+    environment:
+      APP_ENV: staging
+      DEBUG: "false"
+      LOG_LEVEL: info
+    # No source mount — use the baked image
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  worker:
+    command: >
+      celery -A app.workers.celery_app worker
+      --loglevel=info
+      --concurrency=2
+      --queues=pipeline,default
+    environment:
+      APP_ENV: staging
+      DEBUG: "false"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+
+  beat:
+    environment:
+      APP_ENV: staging
+
+  # ── Nginx reverse proxy ──────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: vision_nginx_staging
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - vision_net
+    depends_on:
+      - api
+
+  # ── Prometheus metrics ───────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vision_prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - vision_net
+
+  # ── Grafana dashboards ───────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vision_grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-changeme}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - vision_net
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+  grafana_data:

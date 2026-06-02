@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────
+#  docker-compose.dev.yml  –  DEVELOPMENT
+#  Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#         OR: make dev
+# ─────────────────────────────────────────────
+
+services:
+
+  api:
+    build:
+      target: runtime       # always rebuild locally
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir app
+      --log-level debug
+    volumes:
+      - .:/app              # live-reload: mount full source
+      - /app/__pycache__    # but exclude pycache from mount
+    environment:
+      APP_ENV: dev
+      DEBUG: "true"
+      LOG_LEVEL: debug
+    ports:
+      - "8000:8000"
+      - "5678:5678"         # debugpy port (VSCode attach)
+
+  worker:
+    command: >
+      celery -A app.workers.celery_app worker
+      --loglevel=debug
+      --concurrency=1
+      --queues=pipeline,default
+      --pool=solo            # easier to debug single-process
+    volumes:
+      - .:/app
+    environment:
+      APP_ENV: dev
+      DEBUG: "true"
+
+  beat:
+    volumes:
+      - .:/app
+    environment:
+      APP_ENV: dev
+
+  # ── Dev-only extras ──────────────────────────
+
+  # PgAdmin for DB inspection
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vision_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    networks:
+      - vision_net
+    depends_on:
+      - postgres
+
+  # Redis Commander for cache inspection
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: vision_redis_ui
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - vision_net
+    depends_on:
+      - redis
+
+  # Mailpit — catch all emails locally
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: vision_mailpit
+    ports:
+      - "1025:1025"    # SMTP
+      - "8025:8025"    # Web UI
+    networks:
+      - vision_net

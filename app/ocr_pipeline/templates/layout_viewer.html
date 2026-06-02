@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Layout Viewer</title>
+<style>
+body {{ margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #111827; }}
+.shell {{ display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; padding: 18px; }}
+.canvas {{ position: relative; width: min(100%, {width}px); margin: 0 auto; background: white; box-shadow: 0 8px 28px rgba(15,23,42,.14); }}
+.canvas img {{ display: block; width: 100%; height: auto; }}
+.box {{ position: absolute; border: 2px solid #2563eb; background: rgba(37,99,235,.08); cursor: pointer; padding: 0; }}
+.box:hover, .box:focus {{ background: rgba(245,158,11,.20); border-color: #f59e0b; outline: none; }}
+.box span {{ position: absolute; top: -18px; left: -2px; background: #2563eb; color: white; font-size: 11px; padding: 1px 5px; }}
+.panel {{ background: white; border-left: 1px solid #d7dde5; padding: 18px; min-height: calc(100vh - 36px); }}
+.panel h1 {{ font-size: 18px; margin: 0 0 8px; }}
+.panel .meta {{ color: #4b5563; font-size: 13px; margin-bottom: 14px; }}
+.panel pre {{ white-space: pre-wrap; font: 13px/1.45 Consolas, monospace; background: #f8fafc; border: 1px solid #e5e7eb; padding: 12px; max-height: calc(100vh - 150px); overflow: auto; }}
+@media (max-width: 900px) {{ .shell {{ grid-template-columns: 1fr; }} .panel {{ min-height: auto; border-left: 0; }} }}
+</style>
+</head>
+<body>
+<main class="shell">
+  <section class="canvas" aria-label="Document image with semantic boxes">
+    <img src="{image_filename}" alt="Preprocessed document">
+    {boxes}
+  </section>
+  <aside class="panel">
+    <h1 id="title">Select a region</h1>
+    <div class="meta" id="meta">Hover or click a box to inspect OCR text.</div>
+    <pre id="text"></pre>
+  </aside>
+</main>
+<script>
+const title = document.getElementById('title');
+const meta = document.getElementById('meta');
+const text = document.getElementById('text');
+for (const box of document.querySelectorAll('.box')) {{
+  const show = () => {{
+    title.textContent = box.dataset.title;
+    meta.textContent = `OCR confidence: ${{box.dataset.confidence}}`;
+    text.textContent = box.dataset.text;
+  }};
+  box.addEventListener('mouseenter', show);
+  box.addEventListener('focus', show);
+  box.addEventListener('click', show);
+}}
+</script>
+</body>
+</html>

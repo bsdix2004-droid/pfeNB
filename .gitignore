@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker output / runtime
+app/docker/output/
+app/docker/uploads/
+app/docker/logs/
+app/logs/
+app/tmp/
+
+# Model files (downloaded at runtime)
+models/
+app/models/
+*.ftz
+*.bin
+
+# Ollama data (Docker volume)
+ollama_data/
+
+# Docker WSL data
+wsl/
+
+# Alembic cache
+alembic/__pycache__/
+alembic/versions/__pycache__/
+
+# Tests - exclude output dirs
+tests/output/
+tests/fixtures/output/
+
+# Docker compose overrides
+docker-compose.override.yml

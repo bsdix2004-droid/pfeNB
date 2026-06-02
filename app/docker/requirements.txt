@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────
+#  requirements.txt  –  Vision AI dependencies
+# ─────────────────────────────────────────────
+
+# ── Web framework ─────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# ── Auth & Security ───────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ── Config ───────────────────────────────────
+pydantic==2.8.2
+pydantic-settings==2.4.0
+
+# ── Database ──────────────────────────────────
+sqlalchemy[asyncio]==2.0.35
+alembic==1.13.2
+asyncpg==0.29.0
+
+# ── Cache / Queue ─────────────────────────────
+redis[asyncio]==5.0.8
+celery[redis]==5.4.0
+flower==2.0.1
+
+# ── HTTP client ───────────────────────────────
+httpx==0.27.2
+
+# ── Object Storage ────────────────────────────
+boto3==1.35.0
+
+# ── AI / Vision ───────────────────────────────
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+scipy==1.14.1
+easyocr==1.7.1
+paddlepaddle>=3.0.0
+paddleocr>=2.8.1
+langdetect==1.0.9
+ollama==0.3.3
+structlog==24.4.0
+
+# ── Monitoring ────────────────────────────────
+prometheus-fastapi-instrumentator==7.0.0
+sentry-sdk[fastapi]==2.13.0

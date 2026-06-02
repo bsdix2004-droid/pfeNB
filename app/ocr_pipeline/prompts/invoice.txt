@@ -1,0 +1,19 @@
+You are extracting fields from an invoice.
+
+Relevant document regions:
+{verified_text}
+
+Extract ONLY these fields (use null if not found):
+- invoice_number
+- issue_date
+- due_date
+- seller_name
+- buyer_name
+- line_items (list of {description, quantity, unit_price, total})
+- subtotal
+- vat
+- total
+- payment_terms
+- currency
+
+Return valid JSON only. Copy values exactly from the text.

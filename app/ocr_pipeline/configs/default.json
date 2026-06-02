@@ -1,0 +1,58 @@
+{
+  "profile": "local-cpu-default",
+  "notes": [
+    "Runtime configuration is defined in config.py.",
+    "No environment file and no external AI service are required."
+  ],
+  "preprocessing": {
+    "adaptive": true,
+    "deskew": true,
+    "contrast_boost": "conditional",
+    "denoise": "conditional",
+    "threshold": "adaptive",
+    "orientation_candidates": true,
+    "max_candidates": 6
+  },
+  "input_limits": {
+    "allowed_extensions": [".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".pdf"],
+    "max_file_size_mb": 25,
+    "min_resolution": [80, 80],
+    "max_resolution": [6000, 6000],
+    "max_pixels": 25000000,
+    "normalize_max_long_edge": 3200,
+    "svg_render_width": 1800
+  },
+  "ocr": {
+    "primary": "PP-OCRv5",
+    "languages": ["en", "fr", "ar"],
+    "cpu_only": true,
+    "min_confidence": 0.70,
+    "low_confidence_threshold": 0.70,
+    "max_ocr_candidates": 4,
+    "worker_timeout_sec": 240
+  },
+  "layout": {
+    "primary": "PaddleOCR-VL",
+    "fallback": "LayoutDetection",
+    "cpu_only": true,
+    "layout_detection_timeout_sec": 45,
+    "vl_timeout_sec": 10
+  },
+  "pdf": {
+    "strategy": "native_first_hybrid",
+    "native_text_engine": "PyMuPDF",
+    "native_table_engines": ["pdfplumber", "Camelot"],
+    "smart_parser_optional": "Docling",
+    "ocr_fallback": "PaddleOCR only for pages with little or no native text"
+  },
+  "ai": {
+    "structured_extraction": "Qwen2.5:0.5b via local Ollama",
+    "temperature": 0.0,
+    "top_p": 0.1,
+    "min_ocr_confidence": 0.85,
+    "context_length": 1024,
+    "max_output_tokens": 512,
+    "timeout_sec": 60,
+    "num_gpu": 0
+  }
+}

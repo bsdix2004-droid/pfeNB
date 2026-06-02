@@ -1,0 +1,22 @@
+docker-compose build --no-cache# Explicitly exclude CUDA packages - force CPU-only dependencies
+# This prevents pip from downloading large CUDA wheels on ARM architectures
+
+# Exclude all NVIDIA CUDA packages
+nvidia-cuda-compiler-cu13==0
+nvidia-cuda-nvrtc-cu13==0
+nvidia-cuda-runtime-cu13==0
+nvidia-cublas-cu13==0
+nvidia-cudnn-cu13==0
+nvidia-cufft-cu13==0
+nvidia-cusparse-cu13==0
+nvidia-nccl-cu13==0
+nvidia-nvjitlink-cu13==0
+nvidia-nvtx-cu13==0
+
+# Exclude cuBLAS and related
+nvidia-cublas-cu13==0
+nvidia-cublaslt-cu13==0
+
+# Force CPU-only versions of libraries
+paddle-blas==0.3.0
+paddlepaddle==2.6.2

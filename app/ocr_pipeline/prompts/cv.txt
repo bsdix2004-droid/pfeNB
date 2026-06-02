@@ -1,0 +1,18 @@
+You are extracting fields from a CV / resume.
+
+Relevant document regions:
+{verified_text}
+
+Extract ONLY these fields (use null if not found):
+- full_name
+- headline
+- email
+- phone
+- location
+- summary
+- skills (list of strings)
+- experience (list of {title, organization, date_range, bullets})
+- education (list of {degree, institution, date_range})
+- languages (list of strings)
+
+Return valid JSON only. Copy values exactly from the text.

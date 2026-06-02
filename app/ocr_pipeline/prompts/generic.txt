@@ -1,0 +1,7 @@
+You are extracting key information from a document.
+
+Document regions:
+{verified_text}
+
+Extract all clearly labeled fields as key-value pairs.
+Return valid JSON only. Copy values exactly from the text.

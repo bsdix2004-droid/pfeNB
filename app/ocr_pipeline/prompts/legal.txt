@@ -1,0 +1,15 @@
+You are extracting fields from a legal document or contract.
+
+Relevant document regions:
+{verified_text}
+
+Extract ONLY these fields (use null if not found):
+- title
+- reference_number
+- effective_date
+- parties (list of strings)
+- key_obligations (list of strings, max 8)
+- governing_law
+- signatures (list of strings)
+
+Return valid JSON only. Copy values exactly from the text.
