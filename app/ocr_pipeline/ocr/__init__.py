@@ -1,6 +1,6 @@
 """Optional OCR/layout model adapters."""
 
-from app.ocr_pipeline.ocr.paddle_vl import PaddleOCRVLAdapter, run_layout_analysis, run_paddleocr_vl
+from app.ocr_pipeline.ocr.paddle_vl import LayoutAdapter, run_layout_analysis
 
-__all__ = ["PaddleOCRVLAdapter", "run_layout_analysis", "run_paddleocr_vl"]
+__all__ = ["LayoutAdapter", "run_layout_analysis"]
 

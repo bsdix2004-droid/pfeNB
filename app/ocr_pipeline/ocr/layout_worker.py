@@ -1,4 +1,4 @@
-"""Isolated layout worker so Paddle layout crashes cannot stop the pipeline."""
+"""Isolated layout worker so PPDocLayout crashes cannot stop the pipeline."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _handle(payload: Dict[str, Any]) -> Dict[str, Any]:
         image = cv2.imread(input_path, cv2.IMREAD_COLOR)
         if image is None or image.size == 0:
             return {
-                "source": "layout_detection",
+                "source": "pp_doclayout",
                 "available": False,
                 "reason": "could not read worker input image",
                 "detected_regions": [],
@@ -33,7 +33,7 @@ def _handle(payload: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(exc, KeyboardInterrupt):
             raise
         return {
-            "source": "layout_detection",
+            "source": "pp_doclayout",
             "available": False,
             "reason": f"{type(exc).__name__}: {exc}",
             "detected_regions": [],
@@ -42,4 +42,3 @@ def _handle(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -102,13 +102,9 @@ class OCREngineConfig(BaseModel):
 
 
 class LayoutConfig(BaseModel):
-    ppstructure_enabled: bool = True
-    ppstructure_use_gpu: bool = False
-    paddleocr_vl_enabled: bool = True
-    paddleocr_vl_use_orientation: bool = False
-    paddleocr_vl_use_unwarping: bool = False
-    layout_detection_timeout_sec: int = 300
-    paddleocr_vl_timeout_sec: int = 300
+    enabled: bool = True
+    use_gpu: bool = False
+    timeout_sec: int = 300
     
     # Column separator scoring
     col_sep_gap_weight: float = 2.4
@@ -127,8 +123,11 @@ class LanguageIdentifierConfig(BaseModel):
     use_fasttext: bool = True
     use_cld3: bool = True
     fasttext_model: str = "models/lid.176.ftz"
+    fasttext_model_url: str = (
+        "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz"
+    )
     fallback_to_rules: bool = True
-    supported_languages: list[str] = Field(default_factory=lambda: ["ar", "en", "fr", "mixed"])
+    supported_languages: list[str] = Field(default_factory=lambda: ["ar", "en", "fr", "zh"])
 
 
 class EmbeddingConfig(BaseModel):
@@ -227,9 +226,8 @@ def _load_default_ocr_pipeline_config() -> dict[str, Any]:
     layout = raw.get("layout") if isinstance(raw, dict) else {}
     if isinstance(layout, dict):
         mapped.setdefault("layout", {})
-        mapped["layout"]["ppstructure_use_gpu"] = not bool(layout.get("cpu_only", True))
-        mapped["layout"]["layout_detection_timeout_sec"] = int(layout.get("layout_detection_timeout_sec", 45))
-        mapped["layout"]["paddleocr_vl_timeout_sec"] = int(layout.get("vl_timeout_sec", 10))
+        mapped["layout"]["use_gpu"] = not bool(layout.get("cpu_only", True))
+        mapped["layout"]["timeout_sec"] = int(layout.get("timeout_sec", 45))
 
     ai = raw.get("ai") if isinstance(raw, dict) else {}
     if isinstance(ai, dict):

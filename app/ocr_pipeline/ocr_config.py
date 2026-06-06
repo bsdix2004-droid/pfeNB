@@ -19,10 +19,8 @@ OCR_LANG_FR = "fr"
 OCR_LANG_AR = "ar"
 OCR_USE_ANGLE_CLS = APP_CONFIG.ocr.use_angle_cls
 
-PPSTRUCTURE_ENABLED = APP_CONFIG.layout.ppstructure_enabled
-PPSTRUCTURE_USE_GPU = APP_CONFIG.layout.ppstructure_use_gpu
-
-PADDLEOCR_VL_ENABLED = APP_CONFIG.layout.paddleocr_vl_enabled
+LAYOUT_ENABLED = APP_CONFIG.layout.enabled
+LAYOUT_USE_GPU = APP_CONFIG.layout.use_gpu
 
 ALLOWED_INPUT_EXTENSIONS = APP_CONFIG.input.allowed_extensions
 

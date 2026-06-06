@@ -75,7 +75,7 @@ class DocumentExporter:
                 "requires_review": low_confidence_count > 0,
             },
             "preprocessing": preprocessing,
-            "layout_source": layout_data.get("vision_source", "ppstructure"),
+            "layout_source": layout_data.get("vision_source", "pp_doclayout"),
             "ocr_lines": [line.to_dict(index) for index, line in enumerate(ocr_selection.lines)],
             "uncertain_ocr_lines": uncertain_lines,
             "semantic_blocks": semantic_blocks,
@@ -102,7 +102,7 @@ class DocumentExporter:
         if document_layout == "unknown" and detected:
             document_layout = self._infer_document_layout(detected)
         return {
-            "vision_source": layout_data.get("vision_source", "ppstructure") if isinstance(layout_data, dict) else "ppstructure",
+            "vision_source": layout_data.get("vision_source", "pp_doclayout") if isinstance(layout_data, dict) else "pp_doclayout",
             "available": bool(layout_data.get("available", False) or semantic_regions) if isinstance(layout_data, dict) else bool(semantic_regions),
             "document_layout": document_layout,
             "detected_regions": detected,

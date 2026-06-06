@@ -129,6 +129,22 @@ async def approve(
 @router.post(
     "/{job_id}/export",
     summary="Export final JSON (Export button)",
+    responses={
+        200: {
+            "description": (
+                "Clean nested JSON containing ONLY the extracted fields. "
+                "No document_type, no warnings, no evidence, no fields array. "
+                "Example shape for a CV:\n"
+                "{\n"
+                "  \"personal_info\": {\"name\": \"...\", \"contact\": {\"email\": \"...\", \"phone\": \"...\"}},\n"
+                "  \"education\": {\"formation\": [{\"name\": \"...\", \"university\": \"...\", \"dates\": [\"...\"]}]},\n"
+                "  \"work_experience\": [{\"company\": \"...\", \"position\": \"...\", \"dates\": [\"...\"]}],\n"
+                "  \"skills\": {\"<skill>\": true}\n"
+                "}"
+            ),
+            "content": {"application/json": {}},
+        }
+    },
 )
 async def export_results(
     job_id: uuid.UUID,
@@ -136,7 +152,12 @@ async def export_results(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
-    Triggered when the user clicks Export, returns the final JSON file for download
+    Triggered when the user clicks Export. Returns the final JSON file for download.
+
+    The response body is a clean nested JSON containing ONLY the extracted field
+    values. Validated fields use the user's corrected value; skipped/unchanged
+    fields use the AI-extracted value. Empty values are removed and the file is
+    saved to the results table for audit.
     """
     try:
         service = ResultService(db)

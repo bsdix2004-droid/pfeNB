@@ -1,9 +1,11 @@
-""" 
+"""
 app/services/result_service.py - Extracted fields and results business logic
 """
 import json
+import re
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import status
 from sqlalchemy import select
@@ -16,6 +18,97 @@ from app.models.document import Document
 from app.utils.logging import get_logger
 
 logger = get_logger(None).bind(stage="result_service")
+
+_PATH_TOKEN_RE = re.compile(r"[^.\[\]]+|\[\d+\]")
+
+
+def _parse_path(path: str) -> list[str | int]:
+    """Parse a flat field path like 'a.b[0].c' into ['a', 'b', 0, 'c']."""
+    tokens: list[str | int] = []
+    for token in _PATH_TOKEN_RE.findall(path):
+        if token.startswith("[") and token.endswith("]"):
+            tokens.append(int(token[1:-1]))
+        else:
+            tokens.append(token)
+    return tokens
+
+
+def _set_nested(container: Any, path: str, value: Any) -> None:
+    """Insert value at the nested path inside container (dicts/auto-created lists)."""
+    segments = _parse_path(path)
+    if not segments:
+        return
+    current: Any = container
+    for index, segment in enumerate(segments):
+        is_last = index == len(segments) - 1
+        next_segment = segments[index + 1] if not is_last else None
+        if isinstance(segment, int):
+            if not isinstance(current, list):
+                return
+            while len(current) <= segment:
+                current.append(None)
+            if is_last:
+                current[segment] = value
+            else:
+                if current[segment] is None:
+                    current[segment] = [] if isinstance(next_segment, int) else {}
+                current = current[segment]
+        else:
+            if not isinstance(current, dict):
+                return
+            if is_last:
+                current[segment] = value
+            else:
+                if segment not in current or current[segment] is None:
+                    current[segment] = [] if isinstance(next_segment, int) else {}
+                current = current[segment]
+
+
+def _unflatten(flat: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild a nested dict from flat field_name paths."""
+    result: dict[str, Any] = {}
+    for path, value in flat.items():
+        if value in (None, "", [], {}):
+            continue
+        _set_nested(result, path, value)
+    return _prune_empty(result)
+
+
+def _prune_empty(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _prune_empty(item) for key, item in value.items() if item not in (None, "", [], {})}
+    if isinstance(value, list):
+        return [_prune_empty(item) for item in value if item not in (None, "", [], {})]
+    return value
+
+
+def _coerce_value(text: str | None, data_type: str | None = None) -> Any:
+    """Best-effort restore of the original Python type from its stored text form."""
+    if text is None:
+        return None
+    if data_type == "string":
+        return text
+    if data_type == "boolean":
+        if isinstance(text, bool):
+            return text
+        return text.strip().lower() in ("true", "1", "yes")
+    if data_type in ("integer", "number"):
+        try:
+            if data_type == "integer":
+                return int(text)
+            return float(text)
+        except (TypeError, ValueError):
+            return text
+    if data_type in ("array", "object"):
+        try:
+            return json.loads(text)
+        except (TypeError, ValueError):
+            return text
+    try:
+        return json.loads(text)
+    except (TypeError, ValueError):
+        return text
+
 
 class ResultError(Exception):
     """Domain-level result error — converted to HTTP response in the router."""
@@ -148,12 +241,14 @@ class ResultService:
     #_____ export results as JSON _______
     async def export_results(
         self,
-        job_id: uuid.UUID, 
+        job_id: uuid.UUID,
         current_user: User
     ) -> str:
         """
-        Export the results of a job as a JSON file
-        Used in the Export interface
+        Export the results of a job as a clean nested JSON file.
+        Used in the Export interface. The output contains ONLY the extracted
+        field values (nested), with empty values pruned and original types
+        restored when possible. No document_type, no warnings, no evidence.
         """
         job = await self._get_job(job_id, current_user)
 
@@ -161,28 +256,26 @@ class ResultService:
             select(ExtractedField).where(ExtractedField.job_id == job_id)
         )
         fields = result.scalars().all()
-        
-        # Convert fields to a dict for JSON export
-        exported_data = {}
+
+        flat: dict[str, Any] = {}
         for field in fields:
-            if field.is_validated:
-                # user corrected the field → export normalized_value
-                exported_data[field.field_name] = field.normalized_value
+            if field.is_validated and field.normalized_value is not None:
+                value = field.normalized_value
             else:
-                # user skipped or did not process the field → export raw_value
-                exported_data[field.field_name] = field.raw_value
-        
-        #calculate the average confidence score
-        #retrieve only fields that contain a confidence value (not None)
+                value = field.raw_value
+            flat[field.field_name] = _coerce_value(value, field.data_type)
+
+        nested = _unflatten(flat)
+
         confidence_values = [
-            field.confidence for field in fields if field.confidence is not None 
+            field.confidence for field in fields if field.confidence is not None
         ]
-        if confidence_values:
-            confidence_score = sum(confidence_values) / len(confidence_values)
-        else:
-            confidence_score = None
-            
-        #update the document with the average confidence score
+        confidence_score = (
+            sum(confidence_values) / len(confidence_values)
+            if confidence_values
+            else None
+        )
+
         doc_result = await self.db.execute(
             select(Document).where(Document.id == job.document_id)
         )
@@ -191,9 +284,8 @@ class ResultService:
             document.confidence_score = confidence_score
             document.status = "done"
             await self.db.flush()
-            
-        # Save to the results table    
-        exported_data_str = json.dumps(exported_data, ensure_ascii=False, indent=2)
+
+        exported_data_str = json.dumps(nested, ensure_ascii=False, indent=2)
         result_obj = Result(
             document_id=job.document_id,
             job_id=job_id,
@@ -202,12 +294,13 @@ class ResultService:
         )
         self.db.add(result_obj)
         await self.db.flush()
-        
+
         logger.info(
             "results_exported",
             job_id=str(job_id),
             user_email=current_user.email,
             confidence_score=confidence_score,
+            field_count=len(flat),
         )
         return exported_data_str
 

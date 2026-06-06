@@ -1,0 +1,390 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.panel{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:480px}
+.doc-side{position:relative;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg) 0 0 var(--border-radius-lg);padding:16px;overflow:hidden}
+.info-side{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:0 var(--border-radius-lg) var(--border-radius-lg) 0;border-left:none;display:flex;flex-direction:column}
+.doc-page{position:relative;background:#fff;border:1px solid #e0ddd6;border-radius:6px;padding:18px;min-height:380px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.bbox{position:absolute;border:1.5px solid transparent;border-radius:3px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.bbox:hover{z-index:10}
+.bbox.active{z-index:10}
+.bbox-label{position:absolute;top:-17px;left:0;font-size:10px;font-weight:500;white-space:nowrap;padding:2px 5px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .15s}
+.bbox:hover .bbox-label,.bbox.active .bbox-label{opacity:1}
+.bbox-type-heading{border-color:#7F77DD;background:rgba(127,119,221,.08)}
+.bbox-type-heading:hover,.bbox-type-heading.active{background:rgba(127,119,221,.18);border-color:#534AB7}
+.bbox-type-heading .bbox-label{background:#534AB7;color:#EEEDFE}
+.bbox-type-contact{border-color:#1D9E75;background:rgba(29,158,117,.08)}
+.bbox-type-contact:hover,.bbox-type-contact.active{background:rgba(29,158,117,.18);border-color:#0F6E56}
+.bbox-type-contact .bbox-label{background:#0F6E56;color:#E1F5EE}
+.bbox-type-experience{border-color:#BA7517;background:rgba(186,117,23,.08)}
+.bbox-type-experience:hover,.bbox-type-experience.active{background:rgba(186,117,23,.18);border-color:#854F0B}
+.bbox-type-experience .bbox-label{background:#854F0B;color:#FAEEDA}
+.bbox-type-skills{border-color:#D4537E;background:rgba(212,83,126,.08)}
+.bbox-type-skills:hover,.bbox-type-skills.active{background:rgba(212,83,126,.18);border-color:#993556}
+.bbox-type-skills .bbox-label{background:#993556;color:#FBEAF0}
+.bbox-type-education{border-color:#378ADD;background:rgba(55,138,221,.08)}
+.bbox-type-education:hover,.bbox-type-education.active{background:rgba(55,138,221,.18);border-color:#185FA5}
+.bbox-type-education .bbox-label{background:#185FA5;color:#E6F1FB}
+.bbox-text{font-size:9px;color:#444;pointer-events:none;text-align:left;padding:1px 3px;line-height:1.3;width:100%}
+.side-header{padding:16px 18px 12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.side-header h3{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.side-header p{font-size:12px;color:var(--color-text-secondary)}
+.pipeline-steps{flex:1;overflow-y:auto;padding:14px 18px}
+.hint{font-size:13px;color:var(--color-text-secondary);text-align:center;margin-top:60px;line-height:1.6}
+.hint i{font-size:22px;display:block;margin-bottom:8px;opacity:.4}
+.step{margin-bottom:14px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;opacity:.4;transform:translateY(4px);transition:all .25s}
+.step.visible{opacity:1;transform:none}
+.step-header{padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500}
+.step-body{padding:8px 12px;background:var(--color-background-secondary);border-top:0.5px solid var(--color-border-tertiary);font-size:11px;line-height:1.6;color:var(--color-text-secondary)}
+.step-body code{font-family:var(--font-mono);font-size:10px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:3px;padding:1px 4px;color:var(--color-text-primary)}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500;margin-left:auto;flex-shrink:0}
+.tag-ocr{background:#EEEDFE;color:#3C3489}
+.tag-ai{background:#FAEEDA;color:#633806}
+.tag-det{background:#E1F5EE;color:#085041}
+.tag-field{background:#FBEAF0;color:#72243E}
+.field-out{padding:14px 18px;border-top:0.5px solid var(--color-border-tertiary)}
+.field-out h4{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.field-row{display:flex;align-items:baseline;gap:6px;margin-bottom:5px}
+.field-key{font-size:11px;color:var(--color-text-secondary);min-width:90px;flex-shrink:0}
+.field-val{font-size:12px;font-weight:500;color:var(--color-text-primary);font-family:var(--font-mono)}
+.conf-bar{height:4px;border-radius:2px;margin-top:2px;margin-bottom:2px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:10px 0 0}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+.tabs{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);padding:0 18px;gap:0}
+.tab{font-size:12px;padding:8px 10px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:all .15s;user-select:none}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.tab-content{display:none;flex:1;overflow-y:auto;padding:14px 18px}
+.tab-content.active{display:block}
+.flow-row{display:flex;align-items:flex-start;gap:6px;margin-bottom:10px;font-size:11px;line-height:1.5}
+.flow-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0;margin-top:1px}
+.flow-text{color:var(--color-text-secondary)}
+.flow-text strong{color:var(--color-text-primary);font-weight:500}
+.ai-box{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;margin-bottom:10px;font-size:11px;line-height:1.5}
+.ai-box h5{font-size:11px;font-weight:500;margin-bottom:4px;color:var(--color-text-primary)}
+.ai-box p{color:var(--color-text-secondary)}
+pre{font-size:10px;font-family:var(--font-mono);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px;white-space:pre-wrap;word-break:break-all;line-height:1.6;color:var(--color-text-primary)}
+</style>
+
+<h2 class="sr-only">Interactive diagram: how OCR bboxes become extracted fields — click a highlighted region on the document to trace the full pipeline</h2>
+
+<div style="padding:14px 0 10px">
+  <p style="font-size:13px;color:var(--color-text-secondary);padding:0 4px">Click a highlighted region on the document to trace how raw OCR text becomes a structured field.</p>
+</div>
+
+<div class="panel">
+  <div class="doc-side">
+    <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:10px">Document image (simulated)</div>
+    <div class="doc-page" id="doc-page">
+
+      <div class="bbox bbox-type-heading" id="bbox-name"
+        style="left:12px;top:10px;width:200px;height:28px"
+        onclick="selectBox('name')" tabindex="0" role="button" aria-label="Name heading region">
+        <span class="bbox-label">heading_section</span>
+        <span class="bbox-text" style="font-size:13px;font-weight:600;color:#222">Maxime Moreau</span>
+      </div>
+
+      <div class="bbox bbox-type-heading" id="bbox-title"
+        style="left:12px;top:44px;width:240px;height:20px"
+        onclick="selectBox('title')" tabindex="0" role="button" aria-label="Job title region">
+        <span class="bbox-label">heading_section</span>
+        <span class="bbox-text" style="font-size:10px;color:#555">Technicien de maintenance informatique</span>
+      </div>
+
+      <div class="bbox bbox-type-contact" id="bbox-contact"
+        style="left:12px;top:70px;width:220px;height:68px"
+        onclick="selectBox('contact')" tabindex="0" role="button" aria-label="Contact section region">
+        <span class="bbox-label">contact_section</span>
+        <span class="bbox-text">
+          48 rue Descartes, 67100, Strasbourg<br>
+          06 12 34 56 78<br>
+          maxime.moreau@exemple.com
+        </span>
+      </div>
+
+      <div class="bbox bbox-type-experience" id="bbox-exp"
+        style="left:12px;top:148px;width:260px;height:90px"
+        onclick="selectBox('exp')" tabindex="0" role="button" aria-label="Experience section region">
+        <span class="bbox-label">experience_section</span>
+        <span class="bbox-text">
+          PARCOURS PROFESSIONNEL<br>
+          <span style="font-style:italic">Technicien de maintenance</span><br>
+          Nextinfo – Strasbourg – Stage<br>
+          07/2021 - 12/2021
+        </span>
+      </div>
+
+      <div class="bbox bbox-type-education" id="bbox-edu"
+        style="left:12px;top:248px;width:260px;height:72px"
+        onclick="selectBox('edu')" tabindex="0" role="button" aria-label="Education section region">
+        <span class="bbox-label">education_section</span>
+        <span class="bbox-text">
+          FORMATION<br>
+          BTS Services Informatiques Organisations, 06/2022<br>
+          Lycée René Cassin – Strasbourg – Mention bien
+        </span>
+      </div>
+
+      <div class="bbox bbox-type-skills" id="bbox-skills"
+        style="left:12px;top:330px;width:260px;height:50px"
+        onclick="selectBox('skills')" tabindex="0" role="button" aria-label="Skills section region">
+        <span class="bbox-label">skills_section</span>
+        <span class="bbox-text">
+          COMPÉTENCES<br>
+          Analyse des dysfonctionnements • Procédures d'entretien • Langages informatiques
+        </span>
+      </div>
+
+    </div>
+
+    <div class="legend" style="margin-top:10px">
+      <div class="leg-item"><div class="leg-dot" style="background:#534AB7"></div>heading</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#0F6E56"></div>contact</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#854F0B"></div>experience</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#185FA5"></div>education</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#993556"></div>skills</div>
+    </div>
+  </div>
+
+  <div class="info-side">
+    <div class="side-header">
+      <h3 id="info-title">Select a region</h3>
+      <p id="info-sub">Hover over a coloured box on the document</p>
+    </div>
+
+    <div class="tabs" id="tabs" style="display:none">
+      <div class="tab active" onclick="showTab('pipeline')" data-tab="pipeline">Pipeline</div>
+      <div class="tab" onclick="showTab('json')" data-tab="json">JSON output</div>
+      <div class="tab" onclick="showTab('ai')" data-tab="ai">AI logic</div>
+    </div>
+
+    <div id="hint-area" class="pipeline-steps">
+      <div class="hint"><i class="ti ti-cursor-text" aria-hidden="true"></i>Click any coloured region<br>on the document to trace<br>how it becomes a field.</div>
+    </div>
+
+    <div class="tab-content" id="tab-pipeline"></div>
+    <div class="tab-content" id="tab-json"></div>
+    <div class="tab-content" id="tab-ai"></div>
+    <div class="field-out" id="field-out" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  name:{
+    title:'Name heading',
+    sub:'bbox → text block → name extraction',
+    color:'#534AB7',
+    steps:[
+      {label:'1. OCR engine detects bbox',tag:'tag-ocr',body:'PaddleOCR returns polygon coords <code>[12,10,212,10,212,38,12,38]</code> with text "Maxime Moreau" at confidence <code>0.97</code>. The <code>OCRLine</code> dataclass stores: text, polygon, bbox (x1 y1 x2 y2), confidence.'},
+      {label:'2. SemanticReconstructor groups lines',tag:'tag-det',body:'Lines close in Y-space are merged into a <code>SemanticBlockCandidate</code>. The block at top of page (y < 50) + short word count (2 words, no digits, no @) triggers <code>classify_block()</code> → <code>BlockType.HEADING</code>.'},
+      {label:'3. Section heading detection',tag:'tag-det',body:'<code>detect_section()</code> checks if the text matches known section aliases (summary, experience, education…). "Maxime Moreau" is not a section keyword, so it stays as <code>heading</code> with no section label.'},
+      {label:'4. StructuredSchemaExtractor: _person_name()',tag:'tag-ai',body:'Called on the first 12 header lines. Rules: 2–4 words, ≤60 chars, no email/phone/linkedin. "Maxime Moreau" (2 words, no signals) → <strong>full_name = "Maxime Moreau"</strong>.'},
+      {label:'5. CleanJSONExporter: _candidate_name()',tag:'tag-field',body:'Second pass in the export layer: scans first 12 lines of OCR text. Same heuristic confirms the name. Sets <code>personal_info.name</code> in the final export dict.'},
+    ],
+    fields:{field_name:'personal_info.name',value:'"Maxime Moreau"',source:'deterministic (header scan)',conf:0.95},
+    json:`{
+  "document_type": "CV",
+  "data": {
+    "personal_info": {
+      "name": "Maxime Moreau"
+    }
+  },
+  "fields": [{
+    "id": "personal_info.name",
+    "label": "Full Name",
+    "value": "Maxime Moreau",
+    "confidence": 0.95,
+    "source": "deterministic",
+    "status": "verified"
+  }]
+}`,
+    ai:`<div class="ai-box"><h5>Why no Qwen/AI call needed?</h5><p>The name is in the very first line of the header. The deterministic rule (<em>2–4 words, no digits, no contact signals</em>) in <code>_person_name()</code> is highly reliable. Qwen is only invoked if deterministic extraction leaves the field <code>null</code>.</p></div>
+<div class="ai-box"><h5>Grounding check</h5><p><code>GroundingChecker.verify()</code> normalises both "Maxime Moreau" and the full OCR text to lowercase alphanumeric, then checks <code>"maximomoreau" in source_text</code> → <strong>True</strong>. Field passes.</p></div>`
+  },
+  title:{
+    title:'Job title',
+    sub:'bbox → heading block → headline field',
+    color:'#534AB7',
+    steps:[
+      {label:'1. OCR line extracted',tag:'tag-ocr',body:'PaddleOCR returns "Technicien de maintenance informatique" with confidence <code>0.94</code>, bbox at y ≈ 44–64 (just below the name line).'},
+      {label:'2. Block classification: heading',tag:'tag-det',body:'The line is short (5 words), y < 120, avg line height > 22px. <code>classify_block()</code> returns <code>BlockType.HEADING</code>. Assigned <code>reading_order = 2</code> (second block).'},
+      {label:'3. _headline() in StructuredSchemaExtractor',tag:'tag-ai',body:'After <code>_person_name()</code> claims the first valid header line, <code>_headline()</code> picks the next header line that has no contact signals and no digits → <strong>headline = "Technicien de maintenance informatique"</strong>.'},
+      {label:'4. ExtractionField built',tag:'tag-field',body:'<code>_build_fields()</code> in <code>CleanJSONExporter</code> creates an <code>ExtractionField</code> with <code>id="personal_info.headline"</code>, label from <code>FIELD_LABELS</code> dict (falls back to path-derived label).'},
+    ],
+    fields:{field_name:'personal_info.headline',value:'"Technicien de maintenance informatique"',source:'deterministic (headline scan)',conf:0.90},
+    json:`{
+  "personal_info": {
+    "name": "Maxime Moreau",
+    "headline": "Technicien de maintenance informatique"
+  }
+}`,
+    ai:`<div class="ai-box"><h5>Priority ordering matters</h5><p><code>_person_name()</code> is called first. Once it "claims" line 0, <code>_headline()</code> starts from line 1 to avoid re-using the name as the title. This is a simple positional rule — no ML involved.</p></div>
+<div class="ai-box"><h5>What if Qwen is available?</h5><p>Qwen's <code>cv.txt</code> prompt explicitly asks for a <code>headline</code> field. If Qwen returns a non-null value, it overrides the deterministic result in the merge step of <code>DocumentAIOrchestrator.analyze()</code>.</p></div>`
+  },
+  contact:{
+    title:'Contact section',
+    sub:'bbox → contact_section block → email/phone/urls',
+    color:'#0F6E56',
+    steps:[
+      {label:'1. OCR extracts three lines',tag:'tag-ocr',body:'Three OCRLines are detected inside this region:\n• "48 rue Descartes, 67100, Strasbourg" (conf 0.95)\n• "06 12 34 56 78" (conf 0.98)\n• "maxime.moreau@exemple.com" (conf 0.99)'},
+      {label:'2. Section detection → contact_section',tag:'tag-det',body:'<code>detect_section()</code> checks the first line of the block against <code>SECTION_ALIASES["contact"]</code>. The sidebar heading "COORDONNÉES" (normalised to "coordonnees") matches the alias list → block type = <code>BlockType.CONTACT_SECTION</code>.'},
+      {label:'3. Regex pattern extraction',tag:'tag-det',body:'<code>_contact()</code> runs three compiled regexes over all lines:\n• <code>EMAIL_RE</code> matches "maxime.moreau@exemple.com"\n• <code>PHONE_RE</code> matches "06 12 34 56 78"\n• <code>URL_RE</code> finds no URLs'},
+      {label:'4. OCRValueExtractor also fires',tag:'tag-ai',body:'Parallel to schema extraction, <code>OCRValueExtractor.extract()</code> scans every line ≥ 0.70 confidence. It produces <code>OCRCandidateField</code> objects for email (type=email) and phone (type=phone). These are passed to Qwen as <em>source-of-truth candidates</em>.'},
+      {label:'5. CleanJSONExporter assembles contact dict',tag:'tag-field',body:'Final <code>_contact()</code> call in the exporter returns <code>{phone, email, urls, skype?}</code>. Each value is wrapped in an <code>ExtractionField</code> with its own bbox pulled from the matching <code>ExtractionEvidence</code> object.'},
+    ],
+    fields:{field_name:'personal_info.contact.email',value:'"maxime.moreau@exemple.com"',source:'regex + OCRValueExtractor',conf:0.99},
+    json:`{
+  "personal_info": {
+    "contact": {
+      "phone": "06 12 34 56 78",
+      "email": "maxime.moreau@exemple.com",
+      "urls": []
+    }
+  }
+}`,
+    ai:`<div class="ai-box"><h5>Two extraction paths, one result</h5><p><code>StructuredSchemaExtractor._contact()</code> uses regex directly on OCR text. <code>OCRValueExtractor</code> runs the same regex per line and packages results as typed <code>OCRCandidateField</code> objects for Qwen to validate. Both paths converge on the same values.</p></div>
+<div class="ai-box"><h5>Grounding on contact fields</h5><p>Email and phone are <strong>always grounded</strong> because they are literally copied from OCR text by regex — no inference involved. <code>GroundingChecker</code> normalises to alphanumeric and finds the match trivially.</p></div>
+<div class="ai-box"><h5>Evidence & bbox</h5><p><code>_find_region_for_value()</code> scans all <code>ReviewRegion</code> objects on the page looking for a region whose <code>.text</code> contains the normalised email string → stores page number + bbox in <code>ExtractionEvidence</code>, enabling the frontend hover overlay.</p></div>`
+  },
+  exp:{
+    title:'Experience section',
+    sub:'bbox → experience_section → work entries',
+    color:'#854F0B',
+    steps:[
+      {label:'1. Multiple OCR lines merged into block',tag:'tag-ocr',body:'PaddleOCR returns 5 OCRLines for this region. <code>SemanticReconstructor</code> groups them: vertical gap between lines < 1.8 × median_height, so they form one <code>SemanticBlockCandidate</code>.'},
+      {label:'2. Section alias detection',tag:'tag-det',body:'"PARCOURS PROFESSIONNEL" normalises to "parcours professionnel". <code>detect_section()</code> checks <code>SECTION_ALIASES["experience"]</code> which includes "work experience", "expérience"… Alias miss, but the block is ALL_CAPS + ≤3 words → still classified as <code>EXPERIENCE_SECTION</code> via <code>_looks_like_heading()</code>.'},
+      {label:'3. _work_entries() parses the block',tag:'tag-ai',body:'<code>_entry_groups()</code> splits lines at <code>DATE_RANGE_RE</code> matches. "07/2021 - 12/2021" triggers a group boundary. The group becomes:\n• company = "Nextinfo"\n• position = "Technicien de maintenance"\n• location = "Strasbourg"\n• dates = ["07/2021 - 12/2021"]'},
+      {label:'4. _entry_blocks() in StructuredSchemaExtractor',tag:'tag-ai',body:'Parallel deterministic path: <code>_experience_entries()</code> collects all <code>EXPERIENCE_SECTION</code> blocks, then <code>_entry_blocks()</code> uses <code>DATE_RANGE_RE</code>, <code>BULLET_RE</code>, and title-pattern heuristics to assign roles to each line.'},
+      {label:'5. ExtractionField per entry property',tag:'tag-field',body:'<code>_build_fields()</code> flattens the nested list: <code>work_experience[0].company</code>, <code>work_experience[0].position</code>, <code>work_experience[0].dates[0]</code> each get their own <code>ExtractionField</code> with confidence inherited from the OCR block avg.'},
+    ],
+    fields:{field_name:'work_experience[0].company',value:'"Nextinfo"',source:'_entry_blocks() + DATE_RANGE_RE',conf:0.87},
+    json:`{
+  "work_experience": [{
+    "company": "Nextinfo",
+    "position": "Technicien de maintenance informatique",
+    "location": "Strasbourg",
+    "dates": ["07/2021 - 12/2021"],
+    "responsibilities": []
+  }]
+}`,
+    ai:`<div class="ai-box"><h5>How does it know which line is the company?</h5><p>After <code>_entry_blocks()</code> strips date lines, the remaining lines are assigned positionally: first non-date, non-bullet line = title/role; second = organization; third = location (if it contains a comma or known city keyword via <code>_looks_location()</code>).</p></div>
+<div class="ai-box"><h5>Qwen's role here</h5><p>Qwen receives the full verified OCR text and the <code>candidate_fields</code> list (which includes the date, "Nextinfo", "Strasbourg" as pre-extracted values). Its cv.txt prompt asks for structured <code>experience</code> objects. It can <em>organise</em> these into a list but must copy values verbatim — it cannot invent a company name.</p></div>
+<div class="ai-box"><h5>Hallucination guard</h5><p><code>validate_no_hallucination()</code> checks every string value Qwen returns against the normalised OCR source text. If Qwen invented "Nextinfo SA" instead of "Nextinfo", the check would fail and the value would be set to <code>null</code>.</p></div>`
+  },
+  edu:{
+    title:'Education section',
+    sub:'bbox → education_section → education entries',
+    color:'#185FA5',
+    steps:[
+      {label:'1. OCR lines detected in region',tag:'tag-ocr',body:'Four lines extracted:\n• "FORMATION" (section heading)\n• "BTS Services Informatiques Organisations, 06/2022"\n• "Lycée René Cassin – Strasbourg"\n• "Mention bien"'},
+      {label:'2. Section type: EDUCATION_SECTION',tag:'tag-det',body:'"FORMATION" normalises to "formation". <code>SECTION_ALIASES["education"]</code> includes "formation" → block type set to <code>BlockType.EDUCATION_SECTION</code>. The heading line is filtered out before entry parsing.'},
+      {label:'3. _education_entries() extracts degree data',tag:'tag-ai',body:'<code>_entry_groups()</code> finds "06/2022" via <code>DATE_RANGE_RE</code> (single date, not a range — fallback to plain DATE_RE). Group:\n• name = "BTS Services Informatiques Organisations"\n• university = "Lycée René Cassin"\n• dates = ["06/2022"]'},
+      {label:'4. _entry_blocks() in SchemaExtractor',tag:'tag-ai',body:'<code>_looks_like_entry_title()</code> checks for education keywords (bachelor, licence, BTS…). The "BTS" acronym matches a known degree pattern → first non-date line = degree field. "Lycée René Cassin" becomes institution.'},
+      {label:'5. Field assembly and FIELD_LABELS lookup',tag:'tag-field',body:'Path <code>education.formation[0].name</code> is mapped in <code>FIELD_LABELS</code> to "Education". Confidence is the avg confidence of the OCRLines in the block. <code>status = "verified"</code> because matching <code>ExtractionEvidence</code> was found.'},
+    ],
+    fields:{field_name:'education.formation[0].name',value:'"BTS Services Informatiques Organisations"',source:'_education_entries() via _entry_groups()',conf:0.93},
+    json:`{
+  "education": {
+    "formation": [{
+      "name": "BTS Services Informatiques Organisations",
+      "university": "Lycée René Cassin",
+      "dates": ["06/2022"]
+    }, {
+      "name": "Bac STMG",
+      "university": "Lycée Camille See",
+      "dates": ["06/2020"]
+    }]
+  }
+}`,
+    ai:`<div class="ai-box"><h5>Date extraction detail</h5><p><code>_date_ranges()</code> first tries <code>DATE_RANGE_RE</code> (e.g. "07/2021 - 12/2021"). If no range found, it falls back to plain <code>DATE_RE</code> and collects all date matches in the group. "06/2022" is a single date → stored as <code>["06/2022"]</code>.</p></div>
+<div class="ai-box"><h5>Multi-entry handling</h5><p>When the same section block contains multiple qualification entries, <code>_entry_groups()</code> creates a new group each time a date match is followed by a non-bullet, non-date line. This is how BTS and Bac STMG become two separate education objects from a single OCR block.</p></div>`
+  },
+  skills:{
+    title:'Skills section',
+    sub:'bbox → skills_section → skills dict',
+    color:'#993556',
+    steps:[
+      {label:'1. OCR extracts bullet-point lines',tag:'tag-ocr',body:'Lines within the region include "COMPÉTENCES" (heading) and multiple bullet lines: "Analyse des dysfonctionnements", "Procédures d\'entretien du matériel informatique", etc. Each has confidence > 0.85.'},
+      {label:'2. Section alias match',tag:'tag-det',body:'"COMPÉTENCES" normalises (via <code>unicodedata.normalize NFKD</code> → "competences"). <code>SECTION_ALIASES["skills"]</code> includes "compétences", "competences" → block typed as <code>BlockType.SKILLS_SECTION</code>.'},
+      {label:'3. _list_section() extracts items',tag:'tag-ai',body:'<code>_list_section()</code> in <code>StructuredSchemaExtractor</code> iterates all <code>SKILLS_SECTION</code> blocks. For each line: strips bullet prefix with <code>BULLET_RE</code>, then calls <code>_split_compact_list()</code> to split on double-space, semicolons, or pipe chars.'},
+      {label:'4. CleanJSONExporter: _list_from_sections()',tag:'tag-field',body:'Separately, <code>_list_from_sections(sections, ("skills","compétences","competences"))</code> does the same on the raw text sections dict. Each skill item is lowercased and stored as <code>{skill_text: True}</code> in the skills dict.'},
+      {label:'5. Field flattening for ExtractionField list',tag:'tag-field',body:'<code>_flatten(data)</code> recursively walks the nested dict. <code>skills.analyse_des_dysfonctionnements</code> becomes a field path. <code>_build_fields()</code> creates an <code>ExtractionField</code> per skill with label derived from the path.'},
+    ],
+    fields:{field_name:'skills.analyse_des_dysfonctionnements',value:'true',source:'_list_section() + BULLET_RE stripping',conf:0.88},
+    json:`{
+  "skills": {
+    "analyse des dysfonctionnements": true,
+    "procédures d'entretien du matériel informatique": true,
+    "connaissances des langages informatiques": true,
+    "évaluation des délais d'une prestation": true,
+    "création de supports": true,
+    "installation des logiciels": true,
+    "configuration des appareils": true
+  }
+}`,
+    ai:`<div class="ai-box"><h5>Why store skills as {text: true}?</h5><p>The <code>CleanJSONExporter</code> uses a boolean presence-map (<code>{item.lower(): True}</code>) for skills. This makes downstream deduplication trivial and avoids index-based paths like <code>skills[3]</code> that break when order changes.</p></div>
+<div class="ai-box"><h5>Bullet stripping pipeline</h5><p><code>BULLET_RE = re.compile(r"^\\s*(?:[-*]|•|[0-9]+[.)])").</code> After stripping, <code>_split_compact_list()</code> splits on <code>\\s{2,}</code> (double space), <code>[|;,]</code>. This handles both one-item-per-line and comma-separated compact lists.</p></div>
+<div class="ai-box"><h5>Qwen on skills</h5><p>Qwen's <code>cv.txt</code> prompt asks for <code>skills (list of strings)</code>. Because the deterministic extraction already produces a clean list, Qwen's role is to optionally reorder or deduplicate. Its output is validated against the grounding checker — any invented skill not in the OCR text is removed.</p></div>`
+  }
+};
+
+let current = null;
+
+function selectBox(key){
+  if(current) {
+    document.getElementById('bbox-'+current).classList.remove('active');
+  }
+  current = key;
+  document.getElementById('bbox-'+key).classList.add('active');
+  const d = DATA[key];
+  document.getElementById('info-title').textContent = d.title;
+  document.getElementById('info-sub').textContent = d.sub;
+  document.getElementById('hint-area').style.display='none';
+  document.getElementById('tabs').style.display='flex';
+
+  const pc = document.getElementById('tab-pipeline');
+  pc.innerHTML = d.steps.map((s,i)=>`
+    <div class="step" id="step-${key}-${i}">
+      <div class="step-header">
+        <span style="font-size:11px;font-weight:500">${s.label}</span>
+        <span class="tag ${s.tag}">${s.tag.replace('tag-','')}</span>
+      </div>
+      <div class="step-body">${s.body.replace(/\n/g,'<br>')}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('tab-json').innerHTML = `<pre>${d.json}</pre>`;
+  document.getElementById('tab-ai').innerHTML = d.ai;
+
+  const fo = document.getElementById('field-out');
+  fo.style.display='block';
+  const conf = d.fields.conf;
+  const confColor = conf>0.9?'#1D9E75':conf>0.75?'#BA7517':'#D85A30';
+  fo.innerHTML = `
+    <h4>Resulting ExtractionField</h4>
+    <div class="field-row"><span class="field-key">id / path</span><span class="field-val">${d.fields.field_name}</span></div>
+    <div class="field-row"><span class="field-key">value</span><span class="field-val">${d.fields.value}</span></div>
+    <div class="field-row"><span class="field-key">source</span><span class="field-val" style="font-family:var(--font-sans);font-size:11px;color:var(--color-text-secondary)">${d.fields.source}</span></div>
+    <div class="field-row" style="align-items:center"><span class="field-key">confidence</span><span class="field-val">${conf}</span></div>
+    <div class="conf-bar" style="width:${Math.round(conf*100)}%;background:${confColor}"></div>
+  `;
+
+  showTab('pipeline');
+  setTimeout(()=>{
+    d.steps.forEach((_,i)=>{
+      setTimeout(()=>{
+        const el = document.getElementById(`step-${key}-${i}`);
+        if(el) el.classList.add('visible');
+      }, i*120);
+    });
+  },50);
+}
+
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.toggle('active', tc.id==='tab-'+name));
+}
+</script>

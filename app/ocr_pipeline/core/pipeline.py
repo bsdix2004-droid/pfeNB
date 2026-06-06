@@ -25,14 +25,15 @@ from app.ocr_pipeline.core.ai_orchestrator import DocumentAIOrchestrator, AIOrch
 from app.ocr_pipeline.core.detector import DocumentDetector, DocumentInfo
 from app.ocr_pipeline.core.language_identifier import LanguageIdentifier
 from app.ocr_pipeline.core.models import Document, Page, SemanticRegion
+from app.ocr_pipeline.core.block_types import BlockType
 from app.ocr_pipeline.core.ocr_engine import OCRCandidateResult, PaddleOCREngine, TextBlock
 from app.ocr_pipeline.core.script_detector import ScriptDetector
 from app.ocr_pipeline.exporters.document_exporter import DocumentExporter
 from app.ocr_pipeline.layout.reading_order import ReadingOrderEngine
 from app.ocr_pipeline.layout.region_builder import RegionBuilder
-from app.ocr_pipeline.layout.table_understanding import TableUnderstanding
+from app.ocr_pipeline.layout.table_understanding import parse_ocr_table
 from app.ocr_pipeline.ocr.ensemble import OCREnsemble
-from app.ocr_pipeline.ocr.paddle_vl import PaddleOCRVLAdapter
+from app.ocr_pipeline.ocr.paddle_vl import LayoutAdapter
 from app.ocr_pipeline.preprocessing.pipeline import DocumentPreprocessor, PreprocessingResult
 from app.ocr_pipeline.semantic.document_graph import DocumentGraph
 from app.ocr_pipeline.semantic.reconstructor import OCRLine
@@ -155,10 +156,10 @@ class DocumentPipeline:
         self.language_identifier = LanguageIdentifier(config.language)
         self.ocr_engine = PaddleOCREngine(config.ocr)
         self.ocr_ensemble = OCREnsemble()
-        self.layout_adapter = PaddleOCRVLAdapter(config.layout)
+        self.layout_adapter = LayoutAdapter(use_gpu=config.layout.use_gpu)
         self.region_builder = RegionBuilder()
         self.reading_order = ReadingOrderEngine()
-        self.table_understanding = TableUnderstanding()
+        # parse_ocr_table() is imported and called on table_section blocks after OCR
         self.ai_orchestrator = DocumentAIOrchestrator(config)
         self.grounding_checker = GroundingChecker()
         self.summary_engine = SummaryEngine()
@@ -256,6 +257,16 @@ class DocumentPipeline:
                 )
                 blocks = ocr_selection.blocks
                 step.done(f"{doc_info.doc_type}, {doc_info.language}, {len(blocks)} blocks")
+
+            with progress.step("Table parsing") as step:
+                table_count = 0
+                for block in blocks:
+                    if block.block_type in (BlockType.TABLE_SECTION, BlockType.INVOICE_ITEMS_SECTION):
+                        parsed = parse_ocr_table(block)
+                        if parsed.get("col_count", 0) > 0:
+                            block.metadata["table_data"] = parsed
+                            table_count += 1
+                step.done(f"{table_count} tables parsed")
 
             with progress.step("AI extraction (primary)") as step:
                 ai_result = self.ai_orchestrator.analyze(
@@ -500,9 +511,6 @@ class DocumentPipeline:
         layout_data: Dict[str, Any],
         ai_result: AIOrchestrationResult,
     ) -> Dict[str, Any]:
-        pp = layout_data.get("ppstructure", {}) if isinstance(layout_data, dict) else {}
-        vl = layout_data.get("paddleocr_vl", {}) if isinstance(layout_data, dict) else {}
-        pp_name = "LayoutDetection" if pp.get("source") == "layout_detection" else "PPStructure"
         return {
             "preprocessing": {
                 "name": "OpenCV adaptive preprocessing",
@@ -521,8 +529,7 @@ class DocumentPipeline:
                 "lines": ocr_selection.raw_line_count,
                 "avg_confidence": round(float(ocr_selection.avg_confidence), 4),
             },
-            "ppstructure": self._layout_tool_status(pp_name, pp, enabled=self.config.layout.ppstructure_enabled),
-            "paddleocr_vl": self._layout_tool_status("PaddleOCR-VL", vl, enabled=self.config.layout.paddleocr_vl_enabled),
+            "layout": self._layout_tool_status("PP-DocLayoutV3", layout_data, enabled=self.config.layout.enabled),
             "qwen_ollama": ai_result.providers.get("structured_extraction", {}),
             "deterministic_schema": ai_result.providers.get("deterministic_schema", {}),
         }

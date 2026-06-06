@@ -296,6 +296,17 @@ class StructuredSchemaExtractor:
         item_blocks = [block for block in blocks if block.block_type in {BlockType.TABLE_SECTION, BlockType.INVOICE_ITEMS_SECTION}]
         rows = []
         for block in item_blocks:
+            table_data = block.metadata.get("table_data") if isinstance(block.metadata, dict) else None
+            if table_data and table_data.get("col_count", 0) >= 2 and table_data.get("rows"):
+                for row in table_data["rows"]:
+                    entry: Dict[str, Any] = {}
+                    for i, cell in enumerate(row):
+                        col_name = table_data["columns"][i].lower().strip() if i < len(table_data["columns"]) else f"col_{i}"
+                        entry[col_name] = cell
+                    if any(v.strip() for v in entry.values()):
+                        entry["raw"] = " | ".join(row)
+                        rows.append(entry)
+                continue
             for line in block.lines:
                 if self._is_section_heading(line):
                     continue

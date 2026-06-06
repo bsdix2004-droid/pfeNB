@@ -32,11 +32,9 @@
     "worker_timeout_sec": 240
   },
   "layout": {
-    "primary": "PaddleOCR-VL",
-    "fallback": "LayoutDetection",
+    "primary": "PP-DocLayoutV3",
     "cpu_only": true,
-    "layout_detection_timeout_sec": 45,
-    "vl_timeout_sec": 10
+    "timeout_sec": 45
   },
   "pdf": {
     "strategy": "native_first_hybrid",

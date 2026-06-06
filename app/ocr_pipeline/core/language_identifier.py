@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional
+import urllib.request
 
 from app.config import LanguageIdentifierConfig
 from app.ocr_pipeline.utils.logger import get_logger
@@ -76,16 +77,28 @@ class LanguageIdentifier:
         try:
             import fasttext  # type: ignore
 
+            project_root = Path(__file__).resolve().parents[3]
+            cache_dir = Path.home() / ".cache" / "fasttext"
+            cache_path = cache_dir / "lid.176.ftz"
+
             search = [
                 Path(self.config.fasttext_model),
-                Path("models/lid.176.bin"),
-                Path.home() / ".cache" / "fasttext" / "lid.176.ftz",
+                project_root / "models" / "lid.176.ftz",
+                project_root / "models" / "lid.176.bin",
+                cache_path,
             ]
             for path in search:
                 if path.exists():
                     self._ft_model = fasttext.load_model(str(path))
                     LOGGER.info("fastText model loaded: %s", path)
                     return self._ft_model
+
+            LOGGER.info("fastText model not found — downloading %s", self.config.fasttext_model_url)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(self.config.fasttext_model_url, cache_path)
+            LOGGER.info("fastText model downloaded to: %s", cache_path)
+            self._ft_model = fasttext.load_model(str(cache_path))
+            return self._ft_model
         except ImportError:
             return None
         except Exception as exc:

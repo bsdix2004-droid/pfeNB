@@ -218,10 +218,17 @@ class SmartDocumentPipeline:
         for block in ocr.get("semantic_blocks", []) if isinstance(ocr, dict) else []:
             if not isinstance(block, dict) or block.get("block_type") != "table_section":
                 continue
+            metadata = block.get("metadata", {}) or {}
+            table_data = metadata.get("table_data") if isinstance(metadata, dict) else None
+            rows: List[List[str]]
+            if table_data and table_data.get("col_count", 0) >= 2 and table_data.get("rows"):
+                rows = table_data["rows"]
+            else:
+                rows = [[line] for line in block.get("lines", []) if str(line).strip()]
             page.tables.append(
                 TableBlock(
                     page=1,
-                    rows=[[line] for line in block.get("lines", []) if str(line).strip()],
+                    rows=rows,
                     bbox=[float(value) for value in block.get("bbox", [])[:4]] if isinstance(block.get("bbox"), list) else [],
                     source="ocr_semantic_table",
                     confidence=float(block.get("confidence_avg", 0.0) or 0.0),
