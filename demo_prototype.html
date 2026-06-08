@@ -3,752 +3,566 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ScanAnalyze — Demo Prototype</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+<title>ScanAnalyze — Full walkthrough</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* ---------- design system (matches ocr_bbox_to_field_pipeline.html) ---------- */
 :root{
-  --bg:#F6F5F1;--surface:#fff;--border:#E0DDD6;--border2:#EAE8E0;
-  --text:#1C1B1F;--text2:#6F6D66;--accent:#534AB7;--accent-bg:#EEEDFE;
-  --green:#1D9E75;--green-bg:#E1F5EE;--amber:#BA7517;--amber-bg:#FAEEDA;
-  --red:#D4537E;--red-bg:#FBEAF0;--blue:#378ADD;--blue-bg:#E6F1FB;
-  --radius:10px;--font-sans:'Inter',system-ui,-apple-system,sans-serif;--font-mono:'Cascadia Code','JetBrains Mono',monospace;
+  --font-sans:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'Cascadia Code','JetBrains Mono','Fira Code',monospace;
+  --color-background-primary:#FAF9F7;
+  --color-background-secondary:#F3F2EE;
+  --color-text-primary:#172033;
+  --color-text-secondary:#6F6E77;
+  --color-border-tertiary:#E0DDD6;
+  --border-radius-lg:12px;
+  --border-radius-md:8px;
 }
-body{background:var(--bg);font-family:var(--font-sans);color:var(--text);display:flex;flex-direction:column;min-height:100vh}
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.header svg{flex-shrink:0}
-.header h1{font-size:16px;font-weight:600;letter-spacing:-.02em}
-.header span{font-size:12px;color:var(--text2);margin-left:auto}
-.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:24px}
-/* Screens */
-.screen{display:none;width:100%;max-width:880px;flex-direction:column;gap:20px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--color-background-primary);color:var(--color-text-primary);min-height:100vh}
+/* ---------- header ---------- */
+.app-header{display:flex;align-items:center;gap:10px;padding:14px 24px;border-bottom:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);flex-shrink:0}
+.app-header h1{font-size:16px;font-weight:500;letter-spacing:-.01em}
+.app-header span{margin-left:auto;font-size:12px;color:var(--color-text-secondary)}
+/* ---------- stepper ---------- */
+.stepper-wrap{background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);padding:12px 24px}
+.stepper{display:flex;align-items:center;justify-content:center;gap:0;max-width:640px;margin:0 auto}
+.s-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;background:var(--color-border-tertiary);color:var(--color-text-secondary);transition:all .3s;flex-shrink:0}
+.s-dot.active{background:#534AB7;color:#fff}
+.s-dot.done{background:#1D9E75;color:#fff}
+.s-line{width:40px;height:1px;background:var(--color-border-tertiary);transition:background .3s}
+.s-line.done{background:#1D9E75}
+.s-label{font-size:10px;color:var(--color-text-secondary);text-align:center;margin-top:4px;flex:1}
+/* ---------- layout ---------- */
+.main{max-width:960px;margin:0 auto;padding:20px 16px}
+.screen{display:none;flex-direction:column;gap:16px}
 .screen.active{display:flex}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
-.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em;margin-bottom:14px}
-/* Upload */
-.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
-.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-bg)}
-.upload-zone .icon{font-size:40px;margin-bottom:10px;opacity:.5}
-.upload-zone h3{font-size:15px;font-weight:500;margin-bottom:4px}
-.upload-zone p{font-size:12px;color:var(--text2)}
-.upload-zone .allowed{margin-top:14px;font-size:11px;color:var(--text2)}
-.uploaded-file{margin-top:-12px;display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);font-size:13px}
-.uploaded-file .name{font-weight:500}
-.uploaded-file .size{color:var(--text2);font-size:11px}
-.uploaded-file.show{display:flex}
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-family:var(--font-sans);font-size:13px;font-weight:500;border:none;cursor:pointer;transition:all .15s}
-.btn-primary{background:var(--accent);color:#fff}
+h2{font-size:16px;font-weight:500;margin-bottom:4px}
+p.desc{font-size:12px;color:var(--color-text-secondary);margin-bottom:12px}
+/* ---------- cards ---------- */
+.card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);overflow:hidden}
+.card-header{padding:14px 18px 10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.card-header h3{font-size:13px;font-weight:500;color:var(--color-text-secondary)}
+.card-body{padding:14px 18px}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--border-radius-md);font-family:var(--font-sans);font-size:12px;font-weight:500;border:0.5px solid transparent;cursor:pointer;transition:all .12s;user-select:none}
+.btn-primary{background:#534AB7;color:#fff;border-color:#534AB7}
 .btn-primary:hover{background:#443DA0}
-.btn-primary:disabled{opacity:.4;cursor:default}
-.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:hover{background:var(--border2)}
-.btn-success{background:var(--green);color:#fff}
+.btn-primary:disabled{opacity:.35;cursor:default}
+.btn-secondary{background:var(--color-background-primary);color:var(--color-text-primary);border-color:var(--color-border-tertiary)}
+.btn-secondary:hover{background:var(--color-background-secondary)}
+.btn-success{background:#1D9E75;color:#fff;border-color:#1D9E75}
 .btn-success:hover{background:#168A62}
-.btn-amber{background:var(--amber);color:#fff}
+.btn-amber{background:#BA7517;color:#fff;border-color:#BA7517}
 .btn-amber:hover{background:#9E6110}
-.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-red{background:#D4537E;color:#fff;border-color:#D4537E}
 .btn-red:hover{background:#B9456B}
-.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
-.btn-outline:hover{background:var(--bg)}
-.btn-sm{padding:6px 12px;font-size:11px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:4px}
-/* Processing */
-.processing-steps{display:flex;flex-direction:column;gap:10px}
-.proc-step{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border2);border-radius:8px;font-size:13px;background:var(--surface);opacity:.4;transition:all .4s}
-.proc-step.active{opacity:1;border-color:var(--accent);background:var(--accent-bg)}
-.proc-step.done{opacity:1;border-color:var(--green);background:var(--green-bg)}
-.proc-step .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--border2)}
-.proc-step.active .dot{background:var(--accent);animation:pulse 1s infinite}
-.proc-step.done .dot{background:var(--green)}
-.proc-step .step-label{font-weight:500}
-.proc-step .step-detail{font-size:11px;color:var(--text2);margin-left:auto}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-/* Results */
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
-.tab{font-size:12px;padding:8px 14px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;user-select:none}
-.tab.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
-.verif-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:380px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.doc-preview{background:var(--bg);padding:16px;border-right:1px solid var(--border)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:8px}
+/* ---------- upload ---------- */
+.upload-zone{border:1px dashed var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--color-background-secondary)}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#534AB7;background:rgba(83,74,183,.06)}
+.upload-zone .icon{font-size:34px;margin-bottom:8px;opacity:.45}
+.upload-zone h3{font-size:14px;font-weight:500;margin-bottom:3px}
+.upload-zone p{font-size:12px;color:var(--color-text-secondary)}
+.upload-zone .allowed{margin-top:10px;font-size:11px;color:var(--color-text-secondary)}
+.uploaded-file{margin-top:10px;display:none;align-items:center;gap:8px;padding:10px 14px;background:rgba(29,158,117,.08);border:0.5px solid #1D9E75;border-radius:var(--border-radius-md);font-size:12px}
+.uploaded-file.show{display:flex}
+.uploaded-file .name{font-weight:500}
+.uploaded-file .size{color:var(--color-text-secondary);font-size:11px}
+.uploaded-file .badge{margin-left:auto}
+/* ---------- processing ---------- */
+.progress-track{width:100%;height:4px;background:var(--color-border-tertiary);border-radius:2px;overflow:hidden;margin-bottom:14px}
+.progress-fill{height:100%;background:#534AB7;border-radius:2px;transition:width .4s ease;width:0}
+.proc-step{display:flex;align-items:center;gap:8px;padding:8px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-size:12px;background:var(--color-background-primary);opacity:.4;margin-bottom:6px;transition:all .4s}
+.proc-step.active{opacity:1;border-color:#534AB7;background:rgba(83,74,183,.06)}
+.proc-step.done{opacity:1;border-color:#1D9E75;background:rgba(29,158,117,.08)}
+.proc-step .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--color-border-tertiary)}
+.proc-step.active .dot{background:#534AB7;animation:pulse 1s infinite}
+.proc-step.done .dot{background:#1D9E75}
+.proc-step .lbl{font-weight:500}
+.proc-step .dsc{font-size:11px;color:var(--color-text-secondary);margin-left:auto}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ---------- summary bar ---------- */
+.summary-row{display:flex;gap:0;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.summary-cell{flex:1;text-align:center;padding:12px 8px;border-right:0.5px solid var(--color-border-tertiary);font-size:11px;color:var(--color-text-secondary);background:var(--color-background-primary)}
+.summary-cell:last-child{border-right:none}
+.summary-cell .num{font-size:18px;font-weight:500;color:var(--color-text-primary);display:block;margin-bottom:1px}
+/* ---------- verification panel ---------- */
+.verif-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;min-height:380px}
+.doc-side{background:var(--color-background-secondary);padding:16px;border-right:0.5px solid var(--color-border-tertiary)}
 .doc-page{position:relative;background:#fff;border:1px solid #e0ddd6;border-radius:6px;padding:16px;min-height:340px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .bbox{position:absolute;border:1.5px solid transparent;border-radius:3px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .bbox:hover,.bbox.active{z-index:10}
 .bbox-label{position:absolute;top:-17px;left:0;font-size:10px;font-weight:500;white-space:nowrap;padding:2px 5px;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .15s}
 .bbox:hover .bbox-label,.bbox.active .bbox-label{opacity:1}
-.bbox-heading{border-color:#7F77DD;background:rgba(127,119,221,.08)}
-.bbox-heading:hover,.bbox-heading.active{background:rgba(127,119,221,.18);border-color:#534AB7}
-.bbox-heading .bbox-label{background:#534AB7;color:#EEEDFE}
-.bbox-contact{border-color:#1D9E75;background:rgba(29,158,117,.08)}
-.bbox-contact:hover,.bbox-contact.active{background:rgba(29,158,117,.18);border-color:#0F6E56}
-.bbox-contact .bbox-label{background:#0F6E56;color:#E1F5EE}
-.bbox-experience{border-color:#BA7517;background:rgba(186,117,23,.08)}
-.bbox-experience:hover,.bbox-experience.active{background:rgba(186,117,23,.18);border-color:#854F0B}
-.bbox-experience .bbox-label{background:#854F0B;color:#FAEEDA}
-.bbox-education{border-color:#378ADD;background:rgba(55,138,221,.08)}
-.bbox-education:hover,.bbox-education.active{background:rgba(55,138,221,.18);border-color:#185FA5}
-.bbox-education .bbox-label{background:#185FA5;color:#E6F1FB}
-.bbox-skills{border-color:#D4537E;background:rgba(212,83,126,.08)}
-.bbox-skills:hover,.bbox-skills.active{background:rgba(212,83,126,.18);border-color:#993556}
-.bbox-skills .bbox-label{background:#993556;color:#FBEAF0}
-.field-side{display:flex;flex-direction:column;overflow:hidden}
-.side-header{padding:14px 16px;border-bottom:1px solid var(--border)}
-.side-header h3{font-size:14px;font-weight:500}
-.side-header p{font-size:12px;color:var(--text2);margin-top:2px}
-.field-list{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:6px}
-.field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;transition:all .15s;font-size:12px}
-.field-row:hover{background:var(--bg);border-color:var(--border)}
-.field-row.selected{background:var(--accent-bg);border-color:var(--accent)}
-.field-key{min-width:100px;flex-shrink:0;color:var(--text2);font-size:11px}
-.field-val{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.field-val .none{color:var(--text2);font-weight:400}
-/* Editor */
-.editor-panel{padding:14px 16px;border-top:1px solid var(--border);display:none;flex-direction:column;gap:10px}
-.editor-panel.show{display:flex}
-.editor-panel label{font-size:11px;font-weight:500;color:var(--text2)}
-.editor-panel input{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-sans);font-size:13px;width:100%}
-.editor-panel input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
-.editor-actions{display:flex;gap:6px}
-/* Conf bar */
-.conf-bar{display:flex;align-items:center;gap:6px;flex-shrink:0;min-width:80px}
-.conf-track{flex:1;height:4px;border-radius:2px;background:var(--border2);overflow:hidden}
+.bbox-type-heading{border-color:#7F77DD;background:rgba(127,119,221,.08)}
+.bbox-type-heading:hover,.bbox-type-heading.active{background:rgba(127,119,221,.18);border-color:#534AB7}
+.bbox-type-heading .bbox-label{background:#534AB7;color:#EEEDFE}
+.bbox-type-contact{border-color:#1D9E75;background:rgba(29,158,117,.08)}
+.bbox-type-contact:hover,.bbox-type-contact.active{background:rgba(29,158,117,.18);border-color:#0F6E56}
+.bbox-type-contact .bbox-label{background:#0F6E56;color:#E1F5EE}
+.bbox-type-experience{border-color:#BA7517;background:rgba(186,117,23,.08)}
+.bbox-type-experience:hover,.bbox-type-experience.active{background:rgba(186,117,23,.18);border-color:#854F0B}
+.bbox-type-experience .bbox-label{background:#854F0B;color:#FAEEDA}
+.bbox-type-education{border-color:#378ADD;background:rgba(55,138,221,.08)}
+.bbox-type-education:hover,.bbox-type-education.active{background:rgba(55,138,221,.18);border-color:#185FA5}
+.bbox-type-education .bbox-label{background:#185FA5;color:#E6F1FB}
+.bbox-type-skills{border-color:#D4537E;background:rgba(212,83,126,.08)}
+.bbox-type-skills:hover,.bbox-type-skills.active{background:rgba(212,83,126,.18);border-color:#993556}
+.bbox-type-skills .bbox-label{background:#993556;color:#FBEAF0}
+.bbox-text{font-size:9px;color:#444;pointer-events:none;text-align:left;padding:1px 3px;line-height:1.3;width:100%}
+.info-side{background:var(--color-background-primary);display:flex;flex-direction:column}
+.side-header{padding:14px 16px 10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.side-header h3{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.side-header p{font-size:12px;color:var(--color-text-secondary)}
+.field-list{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.field-row{display:flex;align-items:center;gap:6px;padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;transition:all .12s;font-size:12px}
+.field-row:hover{background:var(--color-background-secondary)}
+.field-row.selected{border-color:#534AB7;background:rgba(83,74,183,.06)}
+.fk{min-width:80px;flex-shrink:0;color:var(--color-text-secondary);font-size:11px}
+.fv{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fv .muted{color:var(--color-text-secondary);font-weight:400}
+.conf-bar{display:flex;align-items:center;gap:4px;flex-shrink:0;min-width:70px}
+.conf-track{flex:1;height:3px;border-radius:2px;background:var(--color-border-tertiary);overflow:hidden}
 .conf-fill{height:100%;border-radius:2px;transition:width .3s}
-.conf-text{font-size:10px;font-weight:600;min-width:28px;text-align:right}
-/* Legend */
-.legend{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
-.legend-dot{width:8px;height:8px;border-radius:2px}
-/* Json */
-.json-preview{background:#1C1B1F;color:#D4D4D4;border-radius:var(--radius);padding:18px;font-family:var(--font-mono);font-size:12px;line-height:1.7;overflow-x:auto;white-space:pre;tab-size:2}
-.json-preview .key{color:#9CDCFE}
-.json-preview .str{color:#CE9178}
-.json-preview .num{color:#B5CEA8}
-.json-preview .bool{color:#569CD6}
-.json-preview .bracket{color:#D4D4D4}
-/* Stepper */
-.stepper{display:flex;gap:0;align-items:center;justify-content:center;margin-bottom:8px}
-.step-indicator{display:flex;align-items:center;gap:6px}
-.step-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;background:var(--border2);color:var(--text2);transition:all .3s}
-.step-dot.active{background:var(--accent);color:#fff}
-.step-dot.done{background:var(--green);color:#fff}
-.step-line{width:32px;height:1px;background:var(--border2);transition:all .3s}
-.step-line.done{background:var(--green)}
-.step-label{font-size:10px;color:var(--text2);text-align:center;margin-top:4px;min-width:60px}
-/* Approve screen */
-.approve-card{text-align:center;padding:36px 24px}
-.approve-card .big-icon{font-size:56px;margin-bottom:12px}
-.approve-card h2{font-size:20px;font-weight:600;margin-bottom:6px}
-.approve-card p{font-size:13px;color:var(--text2);max-width:400px;margin:0 auto 18px}
-/* Progress bar */
-.progress-bar{width:100%;height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin:8px 0}
-.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .5s ease-in-out;width:0}
-/* Status badge */
-.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
-.badge-green{background:var(--green-bg);color:var(--green)}
-.badge-amber{background:var(--amber-bg);color:var(--amber)}
-.badge-blue{background:var(--blue-bg);color:var(--blue)}
-.badge-red{background:var(--red-bg);color:var(--red)}
-/* summary */
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.summary-card{text-align:center;padding:14px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--text2)}
-.summary-card .num{font-size:20px;font-weight:600;color:var(--text);display:block;margin-bottom:2px}
-/* export */
-.export-actions{display:flex;gap:10px;margin-top:12px}
-.export-actions .btn{flex:1}
-/* Footer */
-.footer{background:var(--surface);border-top:1px solid var(--border);padding:10px 28px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);flex-shrink:0}
-/* Responsive */
+.conf-text{font-size:10px;font-weight:600;min-width:26px;text-align:right}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500;flex-shrink:0}
+.tag-done{background:rgba(29,158,117,.12);color:#0F6E56}
+.tag-skip{background:rgba(186,117,23,.12);color:#633806}
+.editor-panel{display:none;flex-direction:column;gap:8px;padding:12px 16px;border-top:0.5px solid var(--color-border-tertiary)}
+.editor-panel.show{display:flex}
+.editor-panel label{font-size:11px;font-weight:500;color:var(--color-text-secondary)}
+.editor-panel input{padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-family:var(--font-sans);font-size:13px;width:100%;background:var(--color-background-primary)}
+.editor-panel input:focus{outline:none;border-color:#534AB7;box-shadow:0 0 0 2px rgba(83,74,183,.15)}
+.editor-actions{display:flex;gap:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 0}
+.leg-item{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--color-text-secondary)}
+.leg-dot{width:7px;height:7px;border-radius:2px}
+/* ---------- tabs ---------- */
+.tabs{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);gap:0}
+.tab{font-size:12px;padding:8px 12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:all .12s;user-select:none}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.tab-pane{display:none;padding:14px 18px;flex-direction:column;gap:10px}
+.tab-pane.active{display:flex}
+/* ---------- json view ---------- */
+.json-block{background:#1C1B1F;color:#D4D4D4;border-radius:var(--border-radius-md);padding:16px;font-family:var(--font-mono);font-size:11px;line-height:1.6;overflow-x:auto;white-space:pre;tab-size:2;max-height:440px;overflow-y:auto}
+.json-block .k{color:#9CDCFE}
+.json-block .s{color:#CE9178}
+.json-block .n{color:#B5CEA8}
+.json-block .b{color:#569CD6}
+.json-block .br{color:#D4D4D4}
+/* ---------- approve ---------- */
+.approve-box{text-align:center;padding:40px 20px}
+.approve-box .big{font-size:48px;margin-bottom:10px}
+.approve-box h2{font-size:18px;font-weight:600;margin-bottom:6px}
+.approve-box p{font-size:13px;color:var(--color-text-secondary);max-width:380px;margin:0 auto 16px}
+/* ---------- footer ---------- */
+.app-footer{text-align:center;padding:10px 24px;border-top:0.5px solid var(--color-border-tertiary);font-size:11px;color:var(--color-text-secondary);flex-shrink:0}
+/* ---------- responsive ---------- */
 @media(max-width:700px){
   .verif-grid{grid-template-columns:1fr}
-  .doc-preview{border-right:none;border-bottom:1px solid var(--border)}
-  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .doc-side{border-right:none;border-bottom:0.5px solid var(--color-border-tertiary)}
+  .summary-row{flex-wrap:wrap}
+  .summary-cell{flex:1 0 50%;border-bottom:0.5px solid var(--color-border-tertiary)}
 }
 </style>
 </head>
 <body>
 
 <!-- ====== HEADER ====== -->
-<div class="header">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" fill="#534AB7"/><rect x="14" y="3" width="7" height="7" rx="1" fill="#1D9E75"/><rect x="3" y="14" width="7" height="7" rx="1" fill="#BA7517"/><rect x="14" y="14" width="7" height="7" rx="1" fill="#378ADD"/></svg>
+<div class="app-header">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.2" fill="#534AB7"/><rect x="14" y="3" width="7" height="7" rx="1.2" fill="#1D9E75"/><rect x="3" y="14" width="7" height="7" rx="1.2" fill="#BA7517"/><rect x="14" y="14" width="7" height="7" rx="1.2" fill="#378ADD"/></svg>
   <h1>ScanAnalyze</h1>
-  <span>Demo prototype — 3 min walkthrough</span>
+  <span>Walkthrough demo</span>
+</div>
+
+<!-- ====== STEPPER ====== -->
+<div class="stepper-wrap" id="stepperBar">
+  <div class="stepper" id="stepper"></div>
 </div>
 
 <!-- ====== MAIN ====== -->
 <div class="main">
 
-  <!-- ========== SCREEN 1: UPLOAD ========== -->
-  <div class="screen active" id="screen-upload">
-    <div class="stepper">
-      <div class="step-indicator"><div class="step-dot active">1</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">2</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">3</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">4</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">5</div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);max-width:550px;margin:0 auto;width:100%;padding:0 8px">
-      <span>Upload</span><span>Processing</span><span>Review</span><span>Approve</span><span>Export</span>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Upload a document</div>
+<!-- ====== SCREEN 1: UPLOAD ====== -->
+<div class="screen active" id="s-upload">
+  <div><h2>Upload a document</h2><p class="desc">Drop a file or click to browse — PDF, PNG, JPEG, JPG, TIFF (max 5 MB)</p></div>
+  <div class="card">
+    <div class="card-body">
       <div class="upload-zone" id="uploadZone">
         <div class="icon">📄</div>
         <h3>Drop your document here</h3>
-        <p>or click to browse — PDF, PNG, JPEG, JPG, TIFF (max 5 MB)</p>
-        <div class="allowed">Allowed: CV · Invoice · Contract · Legal document · Generic form</div>
+        <p>or click to browse</p>
+        <div class="allowed">Accepted: CV · Invoice · Contract · Legal · Generic form</div>
         <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.tiff" style="display:none">
       </div>
       <div class="uploaded-file" id="uploadedFile">
-        <span style="font-size:18px">📄</span>
-        <span class="name" id="fileName">CV_Maxime_Moreau.pdf</span>
-        <span class="size" id="fileSize">2.4 MB</span>
-        <span class="badge badge-green" style="margin-left:auto">Detected: CV</span>
-        <span style="font-size:13px;cursor:pointer;opacity:.5" onclick="resetUpload()">✕</span>
+        <span>📄</span>
+        <span class="name" id="fname">CV_Maxime_Moreau.pdf</span>
+        <span class="size" id="fsize">2.4 MB</span>
+        <span class="badge" style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;background:rgba(29,158,117,.12);color:#0F6E56">CV detected</span>
+        <span style="cursor:pointer;opacity:.4;font-size:14px" onclick="resetUpload()">✕</span>
       </div>
-    </div>
-
-    <div class="card" style="background:var(--blue-bg);border-color:var(--blue)">
-      <div style="font-size:13px;font-weight:500;margin-bottom:4px">🎬 Demo mode</div>
-      <p style="font-size:12px;color:var(--text2)">Click the button below to simulate uploading a CV document and see the full pipeline in action.</p>
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-secondary" onclick="resetUpload()">Reset</button>
-      <button class="btn btn-primary" id="uploadBtn" onclick="startProcessing()">→ Upload &amp; Process</button>
     </div>
   </div>
+  <div class="card" style="background:rgba(83,74,183,.04);border-color:rgba(83,74,183,.2)">
+    <div class="card-body" style="font-size:12px;color:var(--color-text-secondary)">🎬 <strong style="color:var(--color-text-primary)">Demo mode</strong> — click <strong>Upload &amp; Process</strong> to simulate a CV upload and walk through the full pipeline.</div>
+  </div>
+  <div class="actions">
+    <button class="btn btn-secondary btn-sm" onclick="resetUpload()">Reset</button>
+    <button class="btn btn-primary" id="startBtn" onclick="startProcess()">→ Upload &amp; Process</button>
+  </div>
+</div>
 
-  <!-- ========== SCREEN 2: PROCESSING ========== -->
-  <div class="screen" id="screen-processing">
-    <div class="stepper">
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot active">2</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">3</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">4</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">5</div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);max-width:550px;margin:0 auto;width:100%;padding:0 8px">
-      <span>Upload</span><span>Processing</span><span>Review</span><span>Approve</span><span>Export</span>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Pipeline progress</div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="processing-steps" id="procSteps">
-        <div class="proc-step" data-step="0"><div class="dot"></div><span class="step-label">Load image</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="1"><div class="dot"></div><span class="step-label">Preprocess image</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="2"><div class="dot"></div><span class="step-label">Layout detection (PP-DocLayoutV3)</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="3"><div class="dot"></div><span class="step-label">OCR text extraction</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="4"><div class="dot"></div><span class="step-label">Language identification</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="5"><div class="dot"></div><span class="step-label">Document classification</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="6"><div class="dot"></div><span class="step-label">Table parsing</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="7"><div class="dot"></div><span class="step-label">AI field extraction</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="8"><div class="dot"></div><span class="step-label">Semantic graph + grounding</span><span class="step-detail"></span></div>
-        <div class="proc-step" data-step="9"><div class="dot"></div><span class="step-label">Building export</span><span class="step-detail"></span></div>
-      </div>
-      <p id="procStatus" style="font-size:12px;color:var(--text2);margin-top:10px">Starting pipeline…</p>
+<!-- ====== SCREEN 2: PROCESSING ====== -->
+<div class="screen" id="s-process">
+  <div><h2>Pipeline in progress</h2><p class="desc">Running OCR, layout detection, and AI extraction…</p></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+      <div id="procSteps"></div>
+      <p id="procStat" style="font-size:12px;color:var(--color-text-secondary);margin-top:10px">Initializing…</p>
     </div>
   </div>
+</div>
 
-  <!-- ========== SCREEN 3: REVIEW ========== -->
-  <div class="screen" id="screen-review">
-    <div class="stepper">
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot active">3</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">4</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">5</div></div>
+<!-- ====== SCREEN 3: REVIEW ====== -->
+<div class="screen" id="s-review">
+  <div><h2>Review extracted fields</h2><p class="desc">Click any field to verify, correct, or skip. The JSON preview tab shows the exact export shape.</p></div>
+
+  <!-- summary bar -->
+  <div class="summary-row">
+    <div class="summary-cell"><span class="num" id="sumF">12</span>Fields</div>
+    <div class="summary-cell"><span class="num" id="sumC">94%</span>Avg confidence</div>
+    <div class="summary-cell"><span class="num" id="sumT">CV</span>Type</div>
+    <div class="summary-cell"><span class="num" id="sumL">fr</span>Language</div>
+  </div>
+
+  <!-- verification body -->
+  <div class="card" style="padding:0">
+    <div class="tabs" style="padding:0 18px">
+      <div class="tab active" data-tab="verify" onclick="switchTab('verify')">Verify fields</div>
+      <div class="tab" data-tab="json" onclick="switchTab('json')">JSON preview</div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);max-width:550px;margin:0 auto;width:100%;padding:0 8px">
-      <span>Upload</span><span>Processing</span><span>Review</span><span>Approve</span><span>Export</span>
-    </div>
 
-    <div class="summary-grid">
-      <div class="summary-card"><span class="num" id="sumFields">12</span>Fields extracted</div>
-      <div class="summary-card"><span class="num" id="sumConf">94%</span>Avg confidence</div>
-      <div class="summary-card"><span class="num" id="sumDocType">CV</span>Document type</div>
-      <div class="summary-card"><span class="num" id="sumLang">French</span>Language</div>
-    </div>
-
-    <div class="card">
-      <div class="tabs" id="reviewTabs">
-        <div class="tab active" data-tab="verify" onclick="switchReviewTab('verify')">Verify fields</div>
-        <div class="tab" data-tab="json" onclick="switchReviewTab('json')">JSON preview</div>
-      </div>
-
-      <!-- Tab: Verify -->
-      <div class="tab-pane" id="tab-verify">
-        <div class="verif-grid">
-          <div class="doc-preview">
-            <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">Document preview</div>
-            <div class="doc-page" id="docPage">
-              <div class="bbox bbox-heading" style="left:14px;top:10px;width:170px;height:24px" onclick="selectField('personal_info.name')">
-                <span class="bbox-label">heading</span>
-                <span style="font-size:12px;font-weight:600;color:#222;pointer-events:none">Maxime Moreau</span>
-              </div>
-              <div class="bbox bbox-heading" style="left:14px;top:40px;width:200px;height:18px" onclick="selectField('personal_info.headline')">
-                <span class="bbox-label">heading</span>
-                <span style="font-size:10px;color:#555;pointer-events:none">Technicien de maintenance informatique</span>
-              </div>
-              <div class="bbox bbox-contact" style="left:14px;top:64px;width:190px;height:50px" onclick="selectField('personal_info.contact.email')">
-                <span class="bbox-label">contact</span>
-                <span style="font-size:9px;color:#444;pointer-events:none">
-                  48 rue Descartes, 67100 Strasbourg<br>
-                  06 12 34 56 78<br>
-                  maxime.moreau@exemple.com
-                </span>
-              </div>
-              <div class="bbox bbox-education" style="left:14px;top:170px;width:200px;height:60px" onclick="selectField('education.formation[0].name')">
-                <span class="bbox-label">education</span>
-                <span style="font-size:9px;color:#444;pointer-events:none">
-                  BTS Services Informatiques, 06/2022<br>
-                  Lycée René Cassin – Mention bien
-                </span>
-              </div>
-              <div class="bbox bbox-experience" style="left:14px;top:120px;width:220px;height:44px" onclick="selectField('work_experience[0].company')">
-                <span class="bbox-label">experience</span>
-                <span style="font-size:9px;color:#444;pointer-events:none">
-                  Technicien de maintenance – Nextinfo<br>
-                  07/2021 - 12/2021
-                </span>
-              </div>
-              <div class="bbox bbox-skills" style="left:14px;top:238px;width:230px;height:36px" onclick="selectField('skills.analyse_des_dysfonctionnements')">
-                <span class="bbox-label">skills</span>
-                <span style="font-size:9px;color:#444;pointer-events:none">
-                  Analyse des dysfonctionnements • Procédures d'entretien
-                </span>
-              </div>
+    <div class="tab-pane active" id="tp-verify">
+      <div class="verif-grid">
+        <div class="doc-side">
+          <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Document preview</div>
+          <div class="doc-page" id="docPreview">
+            <div class="bbox bbox-type-heading" style="left:14px;top:10px;width:160px;height:24px" onclick="pickField('personal_info.name')">
+              <span class="bbox-label">heading_section</span>
+              <span class="bbox-text" style="font-size:12px;font-weight:600;color:#222">Maxime Moreau</span>
             </div>
-            <div class="legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>heading</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#0F6E56"></div>contact</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#854F0B"></div>experience</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>education</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#993556"></div>skills</div>
+            <div class="bbox bbox-type-heading" style="left:14px;top:40px;width:200px;height:18px" onclick="pickField('personal_info.headline')">
+              <span class="bbox-label">heading_section</span>
+              <span class="bbox-text" style="font-size:10px;color:#555">Technicien de maintenance informatique</span>
+            </div>
+            <div class="bbox bbox-type-contact" style="left:14px;top:64px;width:190px;height:52px" onclick="pickField('personal_info.contact.email')">
+              <span class="bbox-label">contact_section</span>
+              <span class="bbox-text">48 rue Descartes, 67100, Strasbourg<br>06 12 34 56 78<br>maxime.moreau@exemple.com</span>
+            </div>
+            <div class="bbox bbox-type-experience" style="left:14px;top:124px;width:200px;height:46px" onclick="pickField('work_experience[0].company')">
+              <span class="bbox-label">experience_section</span>
+              <span class="bbox-text">Technicien de maintenance<br>Nextinfo – Strasbourg – 07/2021 - 12/2021</span>
+            </div>
+            <div class="bbox bbox-type-education" style="left:14px;top:178px;width:230px;height:56px" onclick="pickField('education.formation[0].name')">
+              <span class="bbox-label">education_section</span>
+              <span class="bbox-text">BTS Services Informatiques, 06/2022<br>Lycée René Cassin – Mention bien</span>
+            </div>
+            <div class="bbox bbox-type-skills" style="left:14px;top:242px;width:220px;height:40px" onclick="pickField('skills.analyse_des_dysfonctionnements')">
+              <span class="bbox-label">skills_section</span>
+              <span class="bbox-text">Analyse des dysfonctionnements • Procédures d'entretien • Langages</span>
             </div>
           </div>
-          <div class="field-side">
-            <div class="side-header">
-              <h3>Extracted fields</h3>
-              <p>Click a field to verify, correct, or skip it</p>
-            </div>
-            <div class="field-list" id="fieldList"></div>
-            <div class="editor-panel" id="editorPanel">
-              <label for="editInput">Corrected value</label>
-              <input id="editInput" type="text" placeholder="Enter the correct value…" onkeydown="if(event.key==='Enter')saveEdit()">
-              <div class="editor-actions">
-                <button class="btn btn-sm btn-secondary" onclick="cancelEdit()">Cancel</button>
-                <button class="btn btn-sm btn-red" onclick="skipField()">Skip</button>
-                <button class="btn btn-sm btn-success" onclick="saveEdit()">✓ Correct</button>
-              </div>
+          <div class="legend">
+            <div class="leg-item"><div class="leg-dot" style="background:#534AB7"></div>heading</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#0F6E56"></div>contact</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#854F0B"></div>experience</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#185FA5"></div>education</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#993556"></div>skills</div>
+          </div>
+        </div>
+        <div class="info-side">
+          <div class="side-header"><h3>Extracted fields</h3><p>Click a field (or document region) to correct or skip it</p></div>
+          <div class="field-list" id="fieldList"></div>
+          <div class="editor-panel" id="editorPanel">
+            <label id="editLabel">Corrected value</label>
+            <input id="editInput" type="text" placeholder="Type the correct value…" onkeydown="if(event.key==='Enter')saveEdit()">
+            <div class="editor-actions">
+              <button class="btn btn-sm btn-secondary" onclick="cancelEdit()">Cancel</button>
+              <button class="btn btn-sm btn-red" onclick="skipField()">Skip</button>
+              <button class="btn btn-sm btn-success" onclick="saveEdit()">✓ Correct</button>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Tab: JSON -->
-      <div class="tab-pane" id="tab-json" style="display:none">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
-          This is the clean nested JSON that the <strong>Export</strong> button will produce.
-          <span style="float:right"><span class="badge badge-green">Only extracted fields</span></span>
-        </div>
-        <div class="json-preview" id="jsonPreview"></div>
-      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-secondary" onclick="navigate('processing')">← Back</button>
-      <button class="btn btn-primary" onclick="navigate('approve')">All verified → Approve</button>
+    <div class="tab-pane" id="tp-json">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px">Clean nested JSON — <strong>only the extracted fields</strong>, no metadata. Matches what <code>POST /api/v1/results/{job_id}/export</code> returns.</div>
+      <div class="json-block" id="jsonPreview"></div>
     </div>
   </div>
 
-  <!-- ========== SCREEN 4: APPROVE ========== -->
-  <div class="screen" id="screen-approve">
-    <div class="stepper">
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot active">4</div><div class="step-line"></div></div>
-      <div class="step-indicator"><div class="step-dot">5</div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);max-width:550px;margin:0 auto;width:100%;padding:0 8px">
-      <span>Upload</span><span>Processing</span><span>Review</span><span>Approve</span><span>Export</span>
-    </div>
-
-    <div class="card approve-card">
-      <div class="big-icon">✅</div>
-      <h2>Verification complete</h2>
-      <p>You have reviewed and corrected all extracted fields. The AI's suggestions have been validated.</p>
-      <div style="display:flex;gap:16px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
-        <div><span class="badge badge-green" id="approvedCount">8 validated</span></div>
-        <div><span class="badge badge-amber" id="skippedCount">2 skipped</span></div>
-      </div>
-      <button class="btn btn-primary" onclick="navigate('export')" style="font-size:15px;padding:12px 28px">→ Export final JSON</button>
-    </div>
+  <div class="actions">
+    <button class="btn btn-secondary" onclick="goScreen('process')">← Back</button>
+    <button class="btn btn-primary" id="approveBtn" onclick="goScreen('approve')">All verified → Approve</button>
   </div>
+</div>
 
-  <!-- ========== SCREEN 5: EXPORT ========== -->
-  <div class="screen" id="screen-export">
-    <div class="stepper">
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot done">✓</div><div class="step-line done"></div></div>
-      <div class="step-indicator"><div class="step-dot active">5</div></div>
+<!-- ====== SCREEN 4: APPROVE ====== -->
+<div class="screen" id="s-approve">
+  <div class="card approve-box">
+    <div class="big">✅</div>
+    <h2>Verification complete</h2>
+    <p>You have reviewed all extracted fields. Corrected values are saved; skipped fields are omitted from the export.</p>
+    <div style="display:flex;gap:14px;justify-content:center;margin-bottom:14px">
+      <span style="font-size:12px"><span style="font-weight:600;color:#1D9E75" id="aOk">0</span> validated</span>
+      <span style="font-size:12px"><span style="font-weight:600;color:#BA7517" id="aSkip">0</span> skipped</span>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);max-width:550px;margin:0 auto;width:100%;padding:0 8px">
-      <span>Upload</span><span>Processing</span><span>Review</span><span>Approve</span><span>Export</span>
-    </div>
+    <button class="btn btn-primary" style="font-size:14px;padding:11px 26px" onclick="goScreen('export')">→ Export final JSON</button>
+  </div>
+</div>
 
-    <div class="card">
-      <div class="card-title">Exported JSON — <span style="color:var(--green);text-transform:none">only the extracted fields, no metadata</span></div>
-      <div class="json-preview" id="jsonExportPreview"></div>
-      <div class="export-actions">
+<!-- ====== SCREEN 5: EXPORT ====== -->
+<div class="screen" id="s-export">
+  <div><h2>Export complete</h2><p class="desc">The JSON below contains <strong>only the extracted field values</strong> — no document_type, no warnings, no evidence.</p></div>
+  <div class="card">
+    <div class="card-header"><h3>Exported JSON</h3></div>
+    <div class="card-body" style="padding:12px 18px">
+      <div class="json-block" id="exportJson" style="max-height:500px"></div>
+      <div class="actions" style="margin-top:12px">
         <button class="btn btn-success" onclick="downloadJson()">⬇ Download results.json</button>
-        <button class="btn btn-secondary" onclick="navigate('upload')">↻ Start over</button>
+        <button class="btn btn-secondary" onclick="goScreen('upload'); resetUpload()">↻ Start over</button>
       </div>
-      <p style="font-size:11px;color:var(--text2);margin-top:12px">The JSON is saved to the <code>results</code> table. No <code>document_type</code>, no <code>warnings</code>, no <code>evidence</code> — just the clean field data.</p>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin-top:8px">Saved to the <code>results</code> table. Validated fields use the corrected value; untouched fields use the AI-extracted value.</p>
     </div>
   </div>
+</div>
 
 </div><!-- /main -->
 
 <!-- ====== FOOTER ====== -->
-<div class="footer">
-  <span>ScanAnalyze · Vision AI API</span>
-  <span>PP-DocLayoutV3 · fastText · Qwen · PaddleOCR</span>
-</div>
+<div class="app-footer">ScanAnalyze · PP-DocLayoutV3 · fastText · PaddleOCR · Qwen</div>
 
 <script>
-// ======== DEMO DATA ========
-const DEMO_FIELDS = [
-  { key: "personal_info.name",        label: "Full Name",         val: "Maxime Moreau",       conf: 0.97, type: "string",  cat: "heading" },
-  { key: "personal_info.headline",    label: "Job Title",         val: "Technicien de maintenance informatique", conf: 0.94, type: "string", cat: "heading" },
-  { key: "personal_info.contact.email", label: "Email",          val: "maxime.moreau@exemple.com", conf: 0.99, type: "string", cat: "contact" },
-  { key: "personal_info.contact.phone", label: "Phone",          val: "06 12 34 56 78",       conf: 0.98, type: "string",  cat: "contact" },
-  { key: "personal_info.contact.urls",  label: "URLs",           val: '["linkedin.com/in/maxime-moreau"]', conf: 0.95, type: "array", cat: "contact" },
-  { key: "education.formation[0].name", label: "Degree",         val: "BTS Services Informatiques aux Organisations", conf: 0.93, type: "string", cat: "education" },
-  { key: "education.formation[0].university", label: "Institution", val: "Lycée René Cassin",  conf: 0.91, type: "string", cat: "education" },
-  { key: "education.formation[0].dates[0]", label: "Date",      val: "06/2022",               conf: 0.95, type: "string",  cat: "education" },
-  { key: "work_experience[0].company", label: "Company",         val: "Nextinfo",              conf: 0.88, type: "string", cat: "experience" },
-  { key: "work_experience[0].position", label: "Position",       val: "Technicien de maintenance", conf: 0.87, type: "string", cat: "experience" },
-  { key: "work_experience[0].dates[0]", label: "Period",        val: "07/2021 - 12/2021",      conf: 0.90, type: "string", cat: "experience" },
-  { key: "skills.analyse_des_dysfonctionnements", label: "Skill", val: "True",                 conf: 0.88, type: "boolean", cat: "skills" },
-  { key: "skills.procedures_entretien", label: "Skill",          val: "True",                  conf: 0.86, type: "boolean", cat: "skills" },
-  { key: "skills.langages_informatiques", label: "Skill",        val: "True",                  conf: 0.84, type: "boolean", cat: "skills" },
+// ========== DATA ==========
+const FIELDS = [
+  {key:"personal_info.name",                  label:"Full Name",   val:"Maxime Moreau",                     conf:.97, type:"string",  cat:"heading"},
+  {key:"personal_info.headline",              label:"Job Title",   val:"Technicien de maintenance informatique", conf:.94, type:"string", cat:"heading"},
+  {key:"personal_info.contact.email",         label:"Email",       val:"maxime.moreau@exemple.com",         conf:.99, type:"string",  cat:"contact"},
+  {key:"personal_info.contact.phone",         label:"Phone",       val:"06 12 34 56 78",                    conf:.98, type:"string",  cat:"contact"},
+  {key:"personal_info.contact.urls",          label:"URLs",        val:'["linkedin.com/in/maxime"]',         conf:.95, type:"array",   cat:"contact"},
+  {key:"education.formation[0].name",         label:"Degree",      val:"BTS Services Informatiques",         conf:.93, type:"string",  cat:"education"},
+  {key:"education.formation[0].university",   label:"Institution", val:"Lycée René Cassin",                  conf:.91, type:"string",  cat:"education"},
+  {key:"education.formation[0].dates[0]",     label:"Date",        val:"06/2022",                           conf:.95, type:"string",  cat:"education"},
+  {key:"work_experience[0].company",          label:"Company",     val:"Nextinfo",                           conf:.88, type:"string",  cat:"experience"},
+  {key:"work_experience[0].position",         label:"Position",    val:"Technicien de maintenance",           conf:.87, type:"string",  cat:"experience"},
+  {key:"work_experience[0].dates[0]",         label:"Period",      val:"07/2021 - 12/2021",                  conf:.90, type:"string",  cat:"experience"},
+  {key:"skills.analyse_des_dysfonctionnements",label:"Skill",      val:"True",                              conf:.88, type:"boolean", cat:"skills"},
+  {key:"skills.procedures_entretien",          label:"Skill",      val:"True",                              conf:.86, type:"boolean", cat:"skills"},
+  {key:"skills.langages_informatiques",        label:"Skill",      val:"True",                              conf:.84, type:"boolean", cat:"skills"},
 ];
+const SCREENS = ["upload","process","review","approve","export"];
+const STEP_DETAILS = [
+  "1920×1280, 1.2 MB, OpenCV",
+  "3 candidates, selected CLAHE + Denoise",
+  "PP-DocLayoutV3 — 12 regions",
+  "PaddleOCR PP-OCRv5 — 48 lines, 94% avg",
+  "fastText → French (0.97)",
+  "CV — keyword match (0.85)",
+  "0 tables",
+  "Qwen extraction OK; deterministic fallback OK",
+  "12 regions, 8 edges; all fields grounded ✓",
+  "final_export.json written",
+];
+let fields = JSON.parse(JSON.stringify(FIELDS));
+let edits = {};
+let sel = null;
+let procRun = false;
 
-const DEMO_NESTED_JSON = {
-  personal_info: {
-    name: "Maxime Moreau",
-    headline: "Technicien de maintenance informatique",
-    contact: { email: "maxime.moreau@exemple.com", phone: "06 12 34 56 78", urls: ["linkedin.com/in/maxime-moreau"] }
-  },
-  education: {
-    formation: [{ name: "BTS Services Informatiques aux Organisations", university: "Lycée René Cassin", dates: ["06/2022"] }]
-  },
-  work_experience: [{
-    company: "Nextinfo",
-    position: "Technicien de maintenance",
-    dates: ["07/2021 - 12/2021"]
-  }],
-  skills: { analyse_des_dysfonctionnements: true, procedures_entretien: true, langages_informatiques: true }
+// ========== STEPPER ==========
+function renderStepper(active){
+  const el = document.getElementById('stepper');
+  const labels = ["Upload","Process","Review","Approve","Export"];
+  let h = '';
+  SCREENS.forEach((s,i)=>{
+    const state = i<active ? 'done' : i===active ? 'active' : '';
+    h += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">`;
+    if(i>0) h += `<div class="s-line ${i<=active?'done':''}"></div>`;
+    h += `<div class="s-dot ${state}">${i<active?'✓':i+1}</div>`;
+    h += `<div class="s-label" style="font-weight:${i===active?'600':'400'};color:${i<active?'#1D9E75':i===active?'#534AB7':'var(--color-text-secondary)'}">${labels[i]}</div>`;
+    h += `</div>`;
+  });
+  el.innerHTML = h;
+}
+
+// ========== NAV ==========
+function goScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  renderStepper(SCREENS.indexOf(id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ========== UPLOAD ==========
+document.getElementById('uploadZone').onclick = ()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = function(){if(this.files.length) simUpload(this.files[0])};
+document.getElementById('uploadZone').ondragover = e=>{e.preventDefault();this.classList.add('drag-over')};
+document.getElementById('uploadZone').ondragleave = ()=>document.getElementById('uploadZone').classList.remove('drag-over');
+document.getElementById('uploadZone').ondrop = e=>{
+  e.preventDefault();document.getElementById('uploadZone').classList.remove('drag-over');
+  if(e.dataTransfer.files.length) simUpload(e.dataTransfer.files[0]);
 };
-
-// ======== STATE ========
-let fields = [];
-let selectedFieldKey = null;
-let editState = {};  // { "field_key": { mode: "validated"|"skipped", correctedValue: "..." } }
-
-// ======== NAVIGATION ========
-function navigate(screen) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + screen).classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function simUpload(f){
+  document.getElementById('fname').textContent = f.name;
+  document.getElementById('fsize').textContent = (f.size/1024/1024).toFixed(1)+' MB';
+  document.getElementById('uploadedFile').classList.add('show');
+  document.getElementById('startBtn').disabled = false;
 }
-
-// ======== UPLOAD ========
-document.getElementById('uploadZone').addEventListener('click', () => document.getElementById('fileInput').click());
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  if (this.files.length) simulateUploaded(this.files[0]);
-});
-document.getElementById('uploadZone').addEventListener('dragover', e => { e.preventDefault(); this.classList.add('dragover'); });
-document.getElementById('uploadZone').addEventListener('dragleave', () => document.getElementById('uploadZone').classList.remove('dragover'));
-document.getElementById('uploadZone').addEventListener('drop', e => {
-  e.preventDefault();
-  document.getElementById('uploadZone').classList.remove('dragover');
-  if (e.dataTransfer.files.length) simulateUploaded(e.dataTransfer.files[0]);
-});
-
-function simulateUploaded(file) {
-  const el = document.getElementById('uploadedFile');
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(1) + ' MB';
-  el.classList.add('show');
-}
-
-function resetUpload() {
+function resetUpload(){
   document.getElementById('uploadedFile').classList.remove('show');
   document.getElementById('fileInput').value = '';
-  editState = {};
-  navigate('upload');
+  edits = {}; fields = JSON.parse(JSON.stringify(FIELDS));
+  document.getElementById('startBtn').disabled = false;
+  goScreen('upload');
 }
 
-// ======== PROCESSING ========
-function startProcessing() {
-  navigate('processing');
-  document.getElementById('uploadBtn').disabled = true;
-  const steps = document.querySelectorAll('#procSteps .proc-step');
-  const statusEl = document.getElementById('procStatus');
-  const progressFill = document.getElementById('progressFill');
-  const details = [
-    "1920×1280, 1.2 MB, opened with OpenCV",
-    "3 candidates, selected CLAHE + Denoise",
-    "PP-DocLayoutV3 — 12 regions detected",
-    "PaddleOCR PP-OCRv5 — 48 lines (fr), 94% avg confidence",
-    "fastText → French (0.97)",
-    "CV — keyword match (0.85)",
-    "0 tables parsed (no table_section blocks)",
-    "Qwen/Ollama structured extraction OK; deterministic schema fallback also OK",
-    "12 semantic regions, 8 relations; all fields grounded ✓",
-    "final_export.json written"
-  ];
-
-  steps.forEach(s => s.className = 'proc-step');
-  progressFill.style.width = '0%';
-  statusEl.textContent = 'Starting pipeline…';
-
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i > 0) {
-      steps[i - 1].className = 'proc-step done';
-      steps[i - 1].querySelector('.step-detail').textContent = details[i - 1];
-    }
-    if (i < steps.length) {
-      steps[i].className = 'proc-step active';
-      steps[i].querySelector('.step-detail').textContent = '';
-      statusEl.textContent = '➡ ' + steps[i].querySelector('.step-label').textContent + '…';
-      progressFill.style.width = ((i + 1) / steps.length * 100) + '%';
-    }
+// ========== PROCESSING ==========
+function startProcess(){
+  if(procRun) return; procRun = true;
+  document.getElementById('startBtn').disabled = true;
+  goScreen('process');
+  const cont = document.getElementById('procSteps');
+  const details = STEP_DETAILS;
+  const labels = ["Load image","Preprocess image","Layout detection (PP-DocLayoutV3)","OCR text extraction","Language identification","Document classification","Table parsing","AI field extraction","Semantic graph + grounding","Building export"];
+  cont.innerHTML = labels.map((l,i)=>`
+    <div class="proc-step" data-i="${i}">
+      <div class="dot"></div>
+      <span class="lbl">${l}</span>
+      <span class="dsc"></span>
+    </div>
+  `).join('');
+  const els = cont.querySelectorAll('.proc-step');
+  const fill = document.getElementById('progFill');
+  const stat = document.getElementById('procStat');
+  fill.style.width = '0%'; stat.textContent = 'Starting pipeline…';
+  let i=0;
+  const iv = setInterval(()=>{
+    if(i>0){ els[i-1].className='proc-step done'; els[i-1].querySelector('.dsc').textContent=details[i-1]; }
+    if(i<els.length){ els[i].className='proc-step active'; stat.textContent = '→ '+labels[i]+'…'; fill.style.width=((i+1)/els.length*100)+'%'; }
     i++;
-    if (i > steps.length) {
-      clearInterval(interval);
-      progressFill.style.width = '100%';
-      statusEl.innerHTML = '✅ <strong>Pipeline completed</strong> — 12 fields extracted in 3.2s';
-      setTimeout(() => { initReview(); navigate('review'); }, 600);
-    }
-  }, 300);
+    if(i>els.length){ clearInterval(iv); fill.style.width='100%'; stat.innerHTML = '✅ <strong>Done</strong> — 14 fields extracted in 3.2s'; setTimeout(()=>{initReview();goScreen('review')},500); }
+  },280);
 }
 
-// ======== REVIEW ========
-function initReview() {
-  fields = JSON.parse(JSON.stringify(DEMO_FIELDS));
-  editState = {};
-  renderFieldList();
-  renderJsonPreview();
-  document.getElementById('sumFields').textContent = fields.length;
-  document.getElementById('sumConf').textContent = '94%';
+// ========== REVIEW ==========
+function initReview(){
+  edits = {}; sel = null;
+  document.getElementById('sumF').textContent = fields.length;
+  document.getElementById('sumC').textContent = '94%';
+  rfl();
+  buildJsonPreview();
 }
 
-function renderFieldList() {
-  const list = document.getElementById('fieldList');
-  list.innerHTML = '';
-  let validated = 0, skipped = 0;
-  fields.forEach(f => {
-    const state = editState[f.key] || {};
-    const isSelected = selectedFieldKey === f.key;
-    const row = document.createElement('div');
-    row.className = 'field-row' + (isSelected ? ' selected' : '');
-    if (state.mode === 'validated') row.style.borderColor = 'var(--green)';
-    else if (state.mode === 'skipped') row.style.opacity = '.5';
-
-    const confColor = f.conf > 0.9 ? 'var(--green)' : f.conf > 0.75 ? 'var(--amber)' : 'var(--red)';
-    const displayVal = state.mode === 'validated' ? state.correctedValue : f.val;
-
-    row.innerHTML = `
-      <span class="field-key">${f.label}</span>
-      <span class="field-val">${displayVal || '<span class="none">(skipped)</span>'}</span>
-      <div class="conf-bar">
-        <div class="conf-track"><div class="conf-fill" style="width:${f.conf*100}%;background:${confColor}"></div></div>
-        <span class="conf-text" style="color:${confColor}">${Math.round(f.conf*100)}%</span>
-      </div>
-      ${state.mode === 'validated' ? '<span class="badge badge-green">✓</span>' : ''}
-      ${state.mode === 'skipped' ? '<span class="badge badge-amber">skipped</span>' : ''}
-    `;
-    row.onclick = () => selectField(f.key);
-    list.appendChild(row);
-    if (state.mode === 'validated') validated++;
-    if (state.mode === 'skipped') skipped++;
+function rfl(){
+  const el = document.getElementById('fieldList'); el.innerHTML = '';
+  let ok=0,sk=0;
+  fields.forEach(f=>{
+    const e = edits[f.key]||{};
+    const isSel = sel===f.key;
+    const d = document.createElement('div'); d.className = 'field-row'+(isSel?' selected':'');
+    if(e.mode==='done') d.style.borderColor='#1D9E75';
+    if(e.mode==='skip') d.style.opacity='.5';
+    const cc = f.conf>.9?'#1D9E75':f.conf>.75?'#BA7517':'#D4537E';
+    const dv = e.mode==='done'?e.cv:f.val;
+    d.innerHTML = `<span class="fk">${f.label}</span><span class="fv">${dv||'<span class="muted">(skipped)</span>'}</span><div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:${f.conf*100}%;background:${cc}"></div></div><span class="conf-text" style="color:${cc}">${Math.round(f.conf*100)}%</span></div>${e.mode==='done'?'<span class="tag tag-done">✓</span>':''}${e.mode==='skip'?'<span class="tag tag-skip">skipped</span>':''}`;
+    d.onclick = ()=>pickField(f.key);
+    el.appendChild(d);
+    if(e.mode==='done') ok++; if(e.mode==='skip') sk++;
   });
-  document.getElementById('approvedCount').textContent = validated + ' validated';
-  document.getElementById('skippedCount').textContent = skipped + ' skipped';
-  // Editor
-  if (selectedFieldKey) openEditor(selectedFieldKey);
+  document.getElementById('aOk').textContent = ok;
+  document.getElementById('aSkip').textContent = sk;
+  document.getElementById('approveBtn').textContent = ok||sk ? `All verified → Approve (${ok}✓ ${sk}⏭)` : 'All verified → Approve';
+  if(sel) openEdit(sel);
 }
 
-function selectField(key) {
-  selectedFieldKey = key;
-  renderFieldList();
+function pickField(k){
+  sel = k; rfl();
+  document.getElementById('tp-verify').classList.add('active');
+  document.getElementById('tp-json').classList.remove('active');
+  document.querySelectorAll('#tp-verify .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='verify'));
 }
 
-function openEditor(key) {
-  const f = fields.find(x => x.key === key);
-  if (!f) return;
-  const panel = document.getElementById('editorPanel');
-  panel.classList.add('show');
-  const input = document.getElementById('editInput');
-  const state = editState[key] || {};
-  input.value = state.mode === 'validated' ? state.correctedValue : f.val;
-  input.focus();
-  document.getElementById('editorPanel').querySelector('label').textContent = `Correcting: ${f.label}`;
+function openEdit(k){
+  const f = fields.find(x=>x.key===k); if(!f) return;
+  document.getElementById('editorPanel').classList.add('show');
+  const e = edits[k]||{};
+  document.getElementById('editInput').value = e.mode==='done'?e.cv:f.val;
+  document.getElementById('editInput').focus();
+  document.getElementById('editLabel').textContent = `Correcting: ${f.label}`;
+}
+function cancelEdit(){ sel=null; document.getElementById('editorPanel').classList.remove('show'); rfl(); }
+function saveEdit(){
+  if(!sel) return;
+  const v = document.getElementById('editInput').value.trim();
+  edits[sel] = {mode:'done', cv:v||'—'};
+  sel=null; document.getElementById('editorPanel').classList.remove('show');
+  rfl(); buildJsonPreview();
+}
+function skipField(){
+  if(!sel) return;
+  edits[sel] = {mode:'skip'};
+  sel=null; document.getElementById('editorPanel').classList.remove('show');
+  rfl(); buildJsonPreview();
 }
 
-function cancelEdit() {
-  document.getElementById('editorPanel').classList.remove('show');
-  selectedFieldKey = null;
-  renderFieldList();
+// ========== TABS ==========
+function switchTab(n){
+  document.querySelectorAll('#tp-verify .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===n));
+  document.getElementById('tp-verify').classList.toggle('active',n==='verify');
+  document.getElementById('tp-json').classList.toggle('active',n==='json');
+  if(n==='json') buildJsonPreview();
 }
 
-function saveEdit() {
-  if (!selectedFieldKey) return;
-  const val = document.getElementById('editInput').value.trim();
-  editState[selectedFieldKey] = { mode: 'validated', correctedValue: val || '—' };
-  document.getElementById('editorPanel').classList.remove('show');
-  selectedFieldKey = null;
-  renderFieldList();
-  renderJsonPreview();
+// ========== UNFLATTEN (matches Python backend) ==========
+function pPath(p){ const t=[]; const re=/[^.\[\]]+|\[\d+\]/g; let m; while((m=re.exec(p))) t.push(m[0].startsWith('[')?parseInt(m[0].slice(1,-1)):m[0]); return t; }
+function sNested(o,p,v){
+  const segs=pPath(p); let cur=o;
+  for(let i=0;i<segs.length;i++){ const last=i===segs.length-1, nxt=!last?segs[i+1]:null, seg=segs[i];
+    if(typeof seg==='number'){ if(!Array.isArray(cur)) return; while(cur.length<=seg) cur.push(null); if(last) cur[seg]=v; else{if(cur[seg]===null) cur[seg]=typeof nxt==='number'?[]:{}; cur=cur[seg];} }
+    else{ if(typeof cur!=='object'||Array.isArray(cur)) return; if(last) cur[seg]=v; else{if(!(seg in cur)||cur[seg]===null) cur[seg]=typeof nxt==='number'?[]:{}; cur=cur[seg];} }
+  }
 }
+function pEmpty(v){ if(v===null||v===''||v===undefined) return; if(Array.isArray(v)){ const a=v.map(pEmpty).filter(x=>x!==undefined); return a.length?a:undefined; } if(typeof v==='object'){ const e=Object.entries(v).map(([k,val])=>[k,pEmpty(val)]).filter(([,val])=>val!==undefined); return e.length?Object.fromEntries(e):undefined; } return v; }
+function unflatten(flat){ const r={}; for(const[p,v]of Object.entries(flat)){ if(v===null||v===''||v===undefined||(Array.isArray(v)&&!v.length)||(typeof v==='object'&&!Object.keys(v).length)) continue; sNested(r,p,v); } return pEmpty(r); }
 
-function skipField() {
-  if (!selectedFieldKey) return;
-  editState[selectedFieldKey] = { mode: 'skipped' };
-  document.getElementById('editorPanel').classList.remove('show');
-  selectedFieldKey = null;
-  renderFieldList();
-  renderJsonPreview();
-}
-
-// ======== JSON PREVIEW ========
-function renderJsonPreview() {
-  // Build nested from fields + edits
-  const data = buildNestedFromFields();
-  const el = document.getElementById('jsonPreview');
-  el.innerHTML = syntaxHighlight(data);
-  document.getElementById('jsonExportPreview').innerHTML = syntaxHighlight(data);
-}
-
-function buildNestedFromFields() {
-  const flat = {};
-  fields.forEach(f => {
-    const state = editState[f.key];
-    if (state && state.mode === 'skipped') return;  // skipped → omit
-    let val;
-    if (state && state.mode === 'validated') {
-      val = state.correctedValue;
-    } else {
-      // Try to parse JSON to restore type
-      try { val = JSON.parse(f.val); } catch(e) { val = f.val; }
-    }
-    if (val !== null && val !== '' && val !== undefined) {
-      flat[f.key] = val;
-    }
-  });
+function buildNestedFromFields(){
+  const flat={};
+  fields.forEach(f=>{ const e=edits[f.key]; if(e&&e.mode==='skip') return; let v; if(e&&e.mode==='done') v=e.cv; else try{v=JSON.parse(f.val)}catch{v=f.val} if(v!==null&&v!==''&&v!==undefined) flat[f.key]=v; });
   return unflatten(flat);
 }
 
-// ======== UNFLATTEN (same as backend) ========
-function unflatten(flat) {
-  const result = {};
-  for (const [path, value] of Object.entries(flat)) {
-    if (value === null || value === '' || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && Object.keys(value).length === 0)) continue;
-    setNested(result, path, value);
-  }
-  return pruneEmpty(result);
+function synHl(obj){ return JSON.stringify(obj,null,2).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"([^"]+)":/g,'<span class="k">"$1"</span>:').replace(/: "([^"]+)"/g,': <span class="s">"$1"</span>').replace(/: (\d+\.?\d*)/g,': <span class="n">$1</span>').replace(/: (true|false)/g,': <span class="b">$1</span>').replace(/: (null)/g,': <span class="n">$1</span>').replace(/([\[\]{}])/g,'<span class="br">$1</span>'); }
+
+function buildJsonPreview(){
+  const d = buildNestedFromFields();
+  const h = synHl(d);
+  document.getElementById('jsonPreview').innerHTML = h;
+  document.getElementById('exportJson').innerHTML = h;
 }
 
-function parsePath(path) {
-  const tokens = [];
-  const re = /[^.\[\]]+|\[\d+\]/g;
-  let match;
-  while ((match = re.exec(path)) !== null) {
-    if (match[0].startsWith('[')) tokens.push(parseInt(match[0].slice(1, -1)));
-    else tokens.push(match[0]);
-  }
-  return tokens;
+// ========== DOWNLOAD ==========
+function downloadJson(){
+  const d = buildNestedFromFields();
+  const b = new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='results.json'; a.click();
 }
 
-function setNested(obj, path, value) {
-  const segs = parsePath(path);
-  let cur = obj;
-  for (let i = 0; i < segs.length; i++) {
-    const isLast = i === segs.length - 1;
-    const next = !isLast ? segs[i + 1] : null;
-    const seg = segs[i];
-    if (typeof seg === 'number') {
-      if (!Array.isArray(cur)) return;
-      while (cur.length <= seg) cur.push(null);
-      if (isLast) cur[seg] = value;
-      else {
-        if (cur[seg] === null) cur[seg] = typeof next === 'number' ? [] : {};
-        cur = cur[seg];
-      }
-    } else {
-      if (typeof cur !== 'object' || Array.isArray(cur)) return;
-      if (isLast) { cur[seg] = value; }
-      else {
-        if (!(seg in cur) || cur[seg] === null) cur[seg] = typeof next === 'number' ? [] : {};
-        cur = cur[seg];
-      }
-    }
-  }
-}
-
-function pruneEmpty(v) {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (Array.isArray(v)) {
-    const pruned = v.map(pruneEmpty).filter(x => x !== undefined);
-    return pruned.length ? pruned : undefined;
-  }
-  if (typeof v === 'object') {
-    const entries = Object.entries(v).map(([k, val]) => [k, pruneEmpty(val)]).filter(([, val]) => val !== undefined);
-    return entries.length ? Object.fromEntries(entries) : undefined;
-  }
-  return v;
-}
-
-// ======== SYNTAX HIGHLIGHT ========
-function syntaxHighlight(obj) {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
-    .replace(/: "([^"]+)"/g, ': <span class="str">"$1"</span>')
-    .replace(/: (\d+\.?\d*)/g, ': <span class="num">$1</span>')
-    .replace(/: (true|false)/g, ': <span class="bool">$1</span>')
-    .replace(/: (null)/g, ': <span class="num">$1</span>')
-    .replace(/([\[\]{}])/g, '<span class="bracket">$1</span>');
-}
-
-// ======== SWITCH REVIEW TAB ========
-function switchReviewTab(name) {
-  document.querySelectorAll('#reviewTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  document.getElementById('tab-verify').style.display = name === 'verify' ? 'block' : 'none';
-  document.getElementById('tab-json').style.display = name === 'json' ? 'block' : 'none';
-}
-
-// ======== DOWNLOAD ========
-function downloadJson() {
-  const data = buildNestedFromFields();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'results.json'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ======== INIT ========
-// Pre-populate upload with demo file
-simulateUploaded({ name: 'CV_Maxime_Moreau.pdf', size: 2450000 });
-document.getElementById('uploadBtn').disabled = false;
+// ========== INIT ==========
+simUpload({name:'CV_Maxime_Moreau.pdf',size:2450000});
+renderStepper(0);
 </script>
 </body>
 </html>
